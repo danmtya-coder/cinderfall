@@ -54,6 +54,7 @@
   .hints{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-size:12px;color:var(--dim);max-width:52ch}kbd{font-family:inherit;font-size:11px;background:#0007;border:1px solid var(--stroke);border-bottom-width:2px;border-radius:7px;padding:3px 8px;color:var(--ink)}
   .stats{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}.stat{display:flex;flex-direction:column;align-items:center;min-width:80px}.stat b{font-size:26px;font-weight:900}.stat span{font-size:11px;color:var(--dim)}.stat.gold b{color:var(--gold)}
   .setrow{display:flex;align-items:center;justify-content:space-between;gap:16px;width:min(100%,360px);font-size:13px}.setrow input[type=range]{width:160px}
+  .share-out{width:min(100%,460px);font:inherit;font-size:12px;color:var(--ink);background:#0007;border:1px solid var(--stroke);border-radius:10px;padding:8px 10px}.share-out.hidden{display:none}
   .braises{font-size:12px;color:var(--gold);font-weight:800}
 </style>
 <link rel="manifest" href="manifest.json">
@@ -88,7 +89,8 @@
     <div id="tech-panel" class="hidden"><h3>Boutique <kbd>B</kbd></h3><div id="tech-list"></div></div>
     <div id="veil">
       <div class="scr" id="scr-menu"><p class="logo">CINDERFALL</p><p class="tag">Une petite lueur, une nuit qui n'en finit pas, une meute de braises qui grandit. Bâtis, fortifie, tiens jusqu'à l'aube — cinq fois.</p>
-        <div class="row"><button class="cta" id="b-play">Jouer</button><button class="ghost" id="b-shop">Braises <span class="braises" id="m-braises">0</span></button><button class="ghost" id="b-settings">Réglages</button><button class="ghost" id="b-fs">Plein écran</button></div>
+        <div class="row"><button class="cta" id="b-play">Jouer</button><button class="ghost" id="b-shop">Braises <span class="braises" id="m-braises">0</span></button><button class="ghost" id="b-daily">Défi du jour</button><button class="ghost" id="b-settings">Réglages</button><button class="ghost" id="b-fs">Plein écran</button></div>
+        <button class="cta hidden" id="b-shared"></button><p class="tag" id="m-daily" style="font-size:11px"></p>
         <p class="tag notice hidden" id="m-notice" role="alert"></p>
         <p class="tag" id="m-stats"></p>
         <div class="hints"><span><kbd>ZQSD</kbd> / <kbd>Clic D</kbd> bouger</span><span><kbd>F</kbd> mur</span><span><kbd>T</kbd> tourelle</span><span><kbd>R</kbd> ruche</span><span><kbd>X</kbd> démolir</span><span><kbd>Clic G</kbd> poser (mur : tirer, <kbd>Shift</kbd> enclos)</span><span><kbd>B</kbd> boutique</span><span><kbd>Entrée</kbd> corne</span><span><kbd>Espace</kbd> Élan</span><span><kbd>L</kbd> Leurre</span><span><kbd>Échap</kbd> annuler / pause</span><span id="m-pad">Manette prise en charge</span></div></div>
@@ -101,7 +103,7 @@
         <button class="ghost" id="b-set-back">Retour</button></div>
       <div class="scr hidden" id="scr-pause"><h2>Pause</h2><div class="row"><button class="cta" id="b-resume">Reprendre</button><button class="ghost" id="b-p-settings">Réglages</button><button class="ghost" id="b-p-fs">Plein écran</button><button class="ghost" id="b-quit">Abandonner</button></div></div>
       <div class="scr hidden" id="scr-draft"><h2 id="d-title" class="win">L'aube</h2><p class="tag">Le jour se lève. Choisis une amélioration pour la nuit prochaine.</p><div class="cards" id="draft-list"></div></div>
-      <div class="scr hidden" id="scr-results"><h2 id="r-title"></h2><div class="stats" id="r-body"></div><p class="tag" id="r-note"></p><p class="tag" id="r-seed" style="opacity:.45;font-size:11px"></p><div class="row"><button class="cta" id="b-r-again">Rejouer</button><button class="ghost" id="b-r-menu">Menu</button></div></div>
+      <div class="scr hidden" id="scr-results"><h2 id="r-title"></h2><div class="stats" id="r-body"></div><p class="tag" id="r-note"></p><p class="tag" id="r-seed" style="opacity:.45;font-size:11px"></p><p class="tag" id="r-daily" style="font-size:12px"></p><div class="row" id="r-share"><button class="ghost" id="b-r-link">Copier le lien</button><button class="ghost" id="b-r-text">Copier le texte</button><button class="ghost" id="b-r-png">Capture</button></div><input class="share-out hidden" id="r-share-out" readonly aria-label="Texte à copier"><div class="row"><button class="cta" id="b-r-again">Rejouer</button><button class="ghost" id="b-r-menu">Menu</button></div></div>
     </div>
   </div>
 </div>
@@ -191,6 +193,20 @@ const profile = load('cf_profile', defProfile);
 const settings = load('cf_settings', defSettings);
 const save = () => { try { store.set('cf_profile', JSON.stringify(profile)); store.set('cf_settings', JSON.stringify(settings)); } catch(e){} };
 
+/* Défi du jour (W-05) — clé SÉPARÉE `cf_daily`, versionnée à part (DAILY_SCHEMA) : le profil (schema 1) ne change pas.
+   Un seul essai compté par date UTC (le premier) ; les suivants se jouent sans compter. Historique local par date.
+   Migration : à écrire ici le jour où DAILY_SCHEMA change (aujourd'hui, seule la v1 existe). */
+const DAILY_SCHEMA = 1;
+const defDaily = () => ({ schema: DAILY_SCHEMA, days: {} });
+const dailyData = (() => { try { const raw = store.get('cf_daily'), o = raw ? JSON.parse(raw) : null; return o && o.schema === DAILY_SCHEMA && o.days ? o : defDaily(); } catch(e) { return defDaily(); } })();
+const daily = {
+  get: date => dailyData.days[date] || null,
+  record(date, st) { if (dailyData.days[date]) return false;
+    dailyData.days[date] = { night: st.night, kills: st.kills, score: st.score, win: !!st.win, seed: st.seed };
+    try { store.set('cf_daily', JSON.stringify(dailyData)); } catch(e){} return true; },
+  list: () => Object.keys(dailyData.days).sort().reverse().map(d => Object.assign({ date: d }, dailyData.days[d])),
+};
+
 /* Difficultés — libellés et verrou seuls. Les nombres (spd/chew/lives/income/extra) vivent dans
    CF.data.difficulty ; CF.meta.DIFF fusionne les deux pour ui.js:16 et game.js. */
 const DIFF_META = {
@@ -242,7 +258,7 @@ const UNLOCKS = [
 ];
 
 CF.meta = {
-  profile, settings, UNLOCKS, defaultMods, save, ANNOUNCER, PHASES, TECH_META,
+  profile, settings, UNLOCKS, defaultMods, save, ANNOUNCER, PHASES, TECH_META, daily,
   say: (key, p) => fill(ANNOUNCER[key], p), phase: (key, p) => fill(PHASES[key], p),
   storageKind: store.kind,                   // 'bridge' (Electron) | 'local' (localStorage) | 'memory' (non persistant)
   get DIFF() { return mergedDiff(); },       // vue fusionnée libellés + CF.data.difficulty
@@ -557,7 +573,7 @@ function startRun(diffId,opts){
   const seed=(opts.seed!=null)?(opts.seed>>>0):RNG.autoSeed();
   if(opts.seed!=null)RNG.seed(seed); // seed() avant gen() : la carte et tout le hasard sim en découlent
   const diff=M.DIFF[diffId]||M.DIFF.braise;
-  run={night:1,diff,seed,mods:M.defaultMods(),taken:[],score:0,active:true,win:false,killsTotal:0};
+  run={night:1,diff,seed,daily:opts.daily||null,cls:opts.cls||null,mods:M.defaultMods(),taken:[],score:0,active:true,win:false,killsTotal:0};
   run.mods.income+=diff.income;
   gen();sap=D.economy.sapStart+(M.isUnlocked('contremaitre')?D.economy.contremaitreBonus:0);lives=D.startLives+diff.lives;kills=0;dmgNums=[];lureUsed=false;paused=false;dead=false;won=false;igniting=false;igniteT=0;invuln=0;shake=0;note="";noteT=0;
   towers=[];ruches=[];techReq=[];tool=null;path=[];goal=null;moveMark=null;run.tech={};toggleShop(false);shots=[];parts=[];smoke=[];ab={dash:0};mmT=0;tick=0;acc=0; // pas fixe (ADR-002) : tick et accumulateur remis à 0 → une partie ne dépend jamais de la précédente.
@@ -592,7 +608,7 @@ function dawn(){
     run.night++;startNight();});
 }
 function finishRun(){
-  running=false;run.active=false;const st={night:run.win?NIGHTS:run.night,kills:run.killsTotal+kills,win:run.win,seed:run.seed,score:(run.killsTotal+kills)*10+(run.win?NIGHTS:run.night-1)*100+lives*50};
+  running=false;run.active=false;const st={night:run.win?NIGHTS:run.night,kills:run.killsTotal+kills,win:run.win,seed:run.seed,diff:run.diff.id,daily:run.daily,score:(run.killsTotal+kills)*10+(run.win?NIGHTS:run.night-1)*100+lives*50};
   run.score=st.score;const gain=M.recordRun(st);CF.ui.showResults(st,gain);
 }
 function spawnHunter(level){level=level||0;let bx=0,by=0,bd=-1;
@@ -989,7 +1005,15 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 function ui(){CF.game.audio.ui();}
 
 /* menu principal */
-function menu(){const p=M.profile;$('m-braises').textContent=p.braises;$('m-stats').textContent=p.runs?`${p.runs} partie${p.runs>1?'s':''} · meilleure nuit ${p.bestNight}/5 · record ${p.bestScore}`:'Première nuit ?';show('menu');}
+/* Défi du jour et graine partagée (W-05) — le menu les propose ; la partie démarre par CF.game.startRun avec la graine. */
+const today=()=>CF.web.dailyDate(Date.now());
+function dailyMenu(){const d=today(),done=M.daily.get(d);$('b-daily').textContent=done?`Défi du jour ✓ ${done.score}`:'Défi du jour';
+  $('m-daily').textContent=M.daily.list().slice(0,5).map(e=>`${e.date} · nuit ${e.night} · ${e.score}`).join('  —  ');
+  const s=CF.web.shared,b=$('b-shared');b.classList.toggle('hidden',!s);if(s){const dd=M.DIFF[s.diff],locked=dd.lock&&!M.isUnlocked(dd.lock);
+    b.disabled=locked;b.textContent=locked?`Graine ${s.seed} : ${dd.name} verrouillé`:`Jouer la graine ${s.seed} (${dd.name})`;}}
+$('b-daily').onclick=()=>{ui();hide();const d=today();CF.game.startRun('braise',{seed:CF.web.dailySeed(d),daily:d});};
+$('b-shared').onclick=()=>{const s=CF.web.shared;if(!s)return;ui();hide();CF.game.startRun(s.diff,{seed:s.seed,cls:s.cls});};
+function menu(){dailyMenu();const p=M.profile;$('m-braises').textContent=p.braises;$('m-stats').textContent=p.runs?`${p.runs} partie${p.runs>1?'s':''} · meilleure nuit ${p.bestNight}/5 · record ${p.bestScore}`:'Première nuit ?';show('menu');}
 $('b-play').onclick=()=>{ui();diff();};$('b-shop').onclick=()=>{ui();shop();};$('b-settings').onclick=()=>{ui();settings('menu');};
 
 /* difficulté */
@@ -1027,10 +1051,12 @@ function showDraft(night,cards,cb){$('d-title').textContent=`L'aube de la nuit $
   show('draft');}
 
 /* résultats */
-function showResults(st,gain){$('r-title').textContent=st.win?"L'aube finale !":"Cindre s'est éteint…";$('r-title').className=st.win?'win':'lose';
+function showResults(st,gain){CF.ui.last=st; // lu par le partage (W-06, web.js)
+  $('r-share-out').classList.add('hidden');$('r-title').textContent=st.win?"L'aube finale !":"Cindre s'est éteint…";$('r-title').className=st.win?'win':'lose';
   $('r-body').innerHTML=`<div class="stat"><b>${st.night}</b><span>nuit${st.night>1?'s':''}</span></div><div class="stat"><b>${st.kills}</b><span>éteinte${st.kills>1?'s':''}</span></div><div class="stat"><b>${st.score}</b><span>score</span></div><div class="stat gold"><b>+${gain}</b><span>braises</span></div>`;
   $('r-note').textContent=st.win?'Cinq nuits tenues. Partie légendaire.':st.night>=3?'Un couloir plus long, une tourelle mieux placée, un rempart double.':'Cherche un enclos, scelle-le, fais défiler la meute sous tes tourelles.';
   $('r-seed').textContent=st.seed!=null?`graine ${st.seed}`:''; // reproductible : « ça a planté nuit 3 » → « graine 48213, nuit 3 »
+  $('r-daily').textContent=st.daily?(M.daily.record(st.daily,st)?`Défi du jour ${st.daily} : essai enregistré.`:`Défi du jour ${st.daily} : déjà joué, cet essai ne compte pas.`):'';
   show('results');}
 $('b-r-again').onclick=()=>{ui();diff();};$('b-r-menu').onclick=()=>{ui();menu();};
 
@@ -1132,7 +1158,40 @@ addEventListener('gamepaddisconnected',()=>{toast('Manette déconnectée');$('m-
 /* stockage : en mode privé (ou stockage bloqué), le dire clairement plutôt que de perdre la progression en silence */
 if(CF.meta.storageKind==='memory'){const n=$('m-notice');n.textContent='Sauvegarde indisponible (navigation privée ?) : ta progression sera perdue en fermant la page.';n.classList.remove('hidden');}
 
-CF.web={toast,toggleFullscreen,sw:registerSW()};
+/* Graine partagée & défi du jour (W-05) : fonctions pures + lecture de l'URL ; aucune logique de simulation.
+   Lien : ?seed=…&diff=…&class=… (class réservée à W-02, lue et conservée). Hors http(s) (fichier, Electron), le lien vise la version publique. */
+const PUBLIC_URL='https://danmtya-coder.github.io/cinderfall/';
+const onWeb=()=>typeof location!=='undefined'&&/^https?:$/.test(location.protocol)&&!window.cfBridge;
+function parseShare(search){const q=new URLSearchParams(search||''),s=q.get('seed');if(s==null||!/^\d{1,10}$/.test(s)||Number(s)>0xffffffff)return null;
+  const d=q.get('diff');return{seed:Number(s)>>>0,diff:CF.meta.DIFF[d]?d:'braise',cls:q.get('class')||null};}
+function shareURL(p,base){const u=new URL(base||(onWeb()?location.origin+location.pathname:PUBLIC_URL));u.search='';
+  u.searchParams.set('seed',String(p.seed>>>0));u.searchParams.set('diff',p.diff||'braise');if(p.cls)u.searchParams.set('class',p.cls);return u.toString();}
+const dailyDate=ms=>new Date(ms).toISOString().slice(0,10); // date UTC : le défi change à minuit UTC pour tout le monde
+function dailySeed(date){let h=2166136261;for(const c of 'cinderfall-daily:'+date)h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return h;}
+const shared=typeof location!=='undefined'?parseShare(location.search):null;
+
+/* Partage viral (W-06) — écran de résultats : lien de la graine, texte prêt à coller, capture PNG du canvas avec le résumé.
+   Zéro réseau, zéro compte : presse-papiers local (repli : champ à copier à la main), image téléchargée localement. */
+const resultLink=st=>shareURL({seed:st.seed,diff:st.diff||'braise',cls:st.cls||null});
+function resultText(st){const d=CF.meta.DIFF[st.diff]||CF.meta.DIFF.braise,k=st.kills,ce=`${k} Cendre${k>1?'s':''} éteinte${k>1?'s':''}`;
+  const head=st.win?`${st.night} nuits tenues`:`Nuit ${st.night}`;return`${st.daily?`Défi du jour ${st.daily} · `:''}${head}, ${ce}, ${d.name} — tu fais mieux ? ${resultLink(st)}`;}
+function copy(text){const out=$('r-share-out'),manual=()=>{out.value=text;out.classList.remove('hidden');try{out.focus();out.select();}catch(e){}toast('Copie impossible : le texte est prêt à copier');return false;};
+  if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(text).then(()=>true,()=>fallback(text)||manual());
+  return Promise.resolve(fallback(text)||manual());}
+function fallback(text){try{const t=document.createElement('textarea');t.value=text;t.setAttribute('readonly','');t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();
+  const ok=document.execCommand&&document.execCommand('copy');document.body.removeChild(t);return!!ok;}catch(e){return false;}}
+function capture(st){const src=$('cv'),W=src.width||960,H=src.height||640,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  x.drawImage(src,0,0);const g=x.createLinearGradient(0,H-150,0,H);g.addColorStop(0,'rgba(10,8,12,0)');g.addColorStop(.35,'rgba(10,8,12,.86)');g.addColorStop(1,'rgba(10,8,12,.95)');
+  x.fillStyle=g;x.fillRect(0,H-150,W,150);x.textBaseline='alphabetic';x.fillStyle='#ffca5c';x.font='900 34px ui-rounded,system-ui,sans-serif';x.fillText('CINDERFALL',28,H-78);
+  x.fillStyle='#f6efe4';x.font='700 20px ui-rounded,system-ui,sans-serif';x.fillText(resultText(st).replace(/ https?:\/\/\S+$/,''),28,H-46);
+  x.fillStyle='#a99bb0';x.font='600 14px ui-rounded,system-ui,sans-serif';x.fillText(`graine ${st.seed} · ${resultLink(st)}`,28,H-20);
+  const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=`cinderfall-graine-${st.seed}.png`;document.body.appendChild(a);a.click();document.body.removeChild(a);return a;}
+const last=()=>CF.ui.last;
+$('b-r-link').onclick=()=>{const st=last();if(!st)return;CF.game.audio.ui();copy(resultLink(st)).then(ok=>ok&&toast('Lien copié'));};
+$('b-r-text').onclick=()=>{const st=last();if(!st)return;CF.game.audio.ui();copy(resultText(st)).then(ok=>ok&&toast('Texte copié'));};
+$('b-r-png').onclick=()=>{const st=last();if(!st)return;CF.game.audio.ui();capture(st);toast('Capture enregistrée');};
+
+CF.web={toast,toggleFullscreen,sw:registerSW(),parseShare,shareURL,dailyDate,dailySeed,shared,resultLink,resultText,copy,capture};
 })();
 
 /* ==== src/main.js ==== */
