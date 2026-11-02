@@ -295,7 +295,7 @@ CF.meta = {
 const CF = window.CF = window.CF || {};
 
 CF.data = {
-  version: 6,
+  version: 7,
 
   world: {
     NIGHTS: 5,        // nombre de nuits jusqu'à la victoire
@@ -307,7 +307,7 @@ CF.data = {
   economy: {
     sapStart: 90,          // Sève au début d'une partie
     contremaitreBonus: 30, // Sève de départ en plus si déblocage 'contremaitre'
-    sapCap: 120,           // plafond de Sève
+    sapCap: 250,           // plafond de Sève — 250 depuis K-03b : les paliers de tech à 180 et 200 doivent être achetables
     income: 1.0,           // Sève/s de base (avant modificateur de difficulté) — K-02 : l'économie, ce sont les Ruches
     rucheCost: 40,         // Sève par Ruche (K-02)
     rucheCap: 4,           // Ruches maximum
@@ -952,7 +952,7 @@ function draw(t){
 // Secousse effective : coupée par reduceMotion, dosée par settings.shake (invariant d'accessibilité, ADR-004 §9).
 function shakeAmp(){return reduce()?0:shake*M.settings.shake;}
 function hud(){if(!run)return;const $=id=>document.getElementById(id);if(shopOpen)CF.ui.techRefresh();$('b-horn').classList.toggle('hidden',!(running&&graceTick>0));
-  $('sapFill').style.width=(sap/1.2)+'%';$('clockFill').style.width=(clock*100)+'%';$('phase').textContent=noteT>0?note:phase;
+  $('sapFill').style.width=(sap/D.economy.sapCap*100)+'%';$('clockFill').style.width=(clock*100)+'%';$('phase').textContent=noteT>0?note:phase;
   $('timer').textContent=running?`${Math.round((1-clock)*NIGHT_LEN)} s avant l'aube`:'';$('kills').textContent=`${run.killsTotal+kills} eteinte${run.killsTotal+kills>1?'s':''} · ${hunters.length} en chasse`;
   CF.ui.cardRefresh();}
 // État lu par la command card (K-05) — lecture seule, hors simulation.
