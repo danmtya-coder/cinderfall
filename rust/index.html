@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CINDERFALL</title>
+<meta name="robots" content="noai, noimageai">
+<meta name="copyright" content="© 2026 danmtya-coder — tous droits réservés">
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #050407; }
   canvas { display: block; width: 100%; height: 100%; outline: none; }
@@ -12,6 +14,27 @@
 <body>
 <canvas id="glcanvas" tabindex="1"></canvas>
 <script src="mq_js_bundle.js"></script>
-<script>load("cinderfall.wasm");</script>
+<script>
+/* CINDERFALL © 2026 danmtya-coder — tous droits réservés. ADR-012 : le jeu lit ici l'adresse qui le sert (0 = verrouillé). */
+miniquad_add_plugin({ name: "cf_host", version: 1, register_plugin: function (o) {
+  var h = String(location.hostname || "").toLowerCase();
+  o.env.cf_pr = function () { return /^https?:$/.test(location.protocol) ? 1 : 2; };
+  o.env.cf_hl = function () { return h.length; };
+  o.env.cf_hc = function (i) { return h.charCodeAt(i) | 0; };
+} });
+load("cinderfall.wasm");
+// « Partager » (écran de fin) : le jeu dépose un texte court (graine, score) dans le presse-papiers de miniquad ; on le
+// recopie aussitôt dans celui du navigateur (le clic ou la touche vient d'avoir lieu : c'est bien un geste du joueur).
+(function () {
+  var last = null;
+  setInterval(function () {
+    var t = window.clipboard;
+    if (t && t !== last) {
+      last = t;
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).catch(function () {});
+    }
+  }, 150);
+})();
+</script>
 </body>
 </html>
