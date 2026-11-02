@@ -339,11 +339,14 @@ CF.meta = {
 const CF = window.CF = window.CF || {};
 
 CF.data = {
-  version: 17,
+  version: 19,
 
   world: {
     NIGHTS: 5,        // nombre de nuits jusqu'à la victoire
-    NIGHT_LEN: 180,   // s : durée d'une nuit (horloge 0→1) — V3-02 : 150 → 180, la base a le temps de grandir
+    NIGHT_LEN: 180,   // s : durée d'une nuit (horloge 0→1) — V3-02 : 150 → 180, la base a le temps de grandir (jeu JS)
+    hourLen: 150,     // s : durée d'une HEURE de nuit, version Rust (ADR-009 : les nuits deviennent des heures enchaînées, sans pause)
+    prep: 45,         // s : l'UNIQUE préparation, au début de la partie (ADR-009 : on ne déclenche jamais la suite)
+    blessTime: 20,    // s : durée de l'offre de bénédictions (ex-cartes d'aube) à chaque changement d'heure, sans pause
     LEVELCAP: 10,     // niveau max d'une Cendre — V3-02 : 8 → 10, escalade jusqu'à la dernière nuit (Brandon ardent)
     RANGE: 7,         // cases : portée de construction autour du joueur
   },
@@ -381,6 +384,42 @@ CF.data = {
     regrowRetry: 2,        // s : repousse différée si la case est occupée
     treeHP: 0.6,           // PV d'un arbre face aux Cendres (un mur neuf : 1)
     chewMul: 1.6,          // un arbre se mâche 1,6× plus vite qu'un mur (non renforcé par Rempart)
+  },
+
+  // Relief et génération de la carte, version Rust (ADR-009 §5-6) : champs de bruit déterministes sur rng.sim.
+  // Trois niveaux (bas-fonds, plaine, hauteurs) séparés par des falaises infranchissables, ouvertes par des rampes ;
+  // l'eau suit les bas-fonds, la forêt l'humidité, la roche affleure sur les hauteurs. Les parts sont des quantiles :
+  // chaque graine garde les mêmes proportions. Le départ reste `forest.clearRadius` (plaine dégagée).
+  // Consigne du designer : hauteur ET largeur — de grands espaces ouverts, quelques grandes falaises lisibles, des
+  // rampes larges et nombreuses, et seulement quelques goulets, rares et précieux (pas un labyrinthe de couloirs).
+  terrain: {
+    reliefScale: 36,       // cases : longueur d'onde des grands reliefs (taille des plateaux et des vallons)
+    reliefOctaves: 3,      // détails du relief (plus = falaises plus découpées)
+    lowShare: 0.22,        // part de la carte en bas-fonds
+    highShare: 0.24,       // part de la carte en hauteurs
+    centerPlain: 16,       // cases : rayon autour du départ ramené vers la plaine
+    smoothPasses: 3,       // passes de lissage des niveaux (falaises moins dentelées)
+    minRegion: 160,        // cases : un plateau ou un creux plus petit se fond dans son voisin (grandes formes seulement)
+    rampWidth: [4, 8],     // cases : largeur d'une rampe ordinaire (min, max) — on monte et on fuit en largeur
+    narrowRamps: 0.15,     // part des rampes qui sont des goulets étroits (2 cases) : rares et précieux
+    rampEvery: 22,         // cases de falaise commune par rampe supplémentaire (chaque plateau a au moins une rampe)
+    rampSpacing: 10,       // cases : distance minimale entre deux rampes
+    lakeShare: 0.4,        // part des bas-fonds noyée (les plus creux d'abord : lacs et tourbières)
+    rivers: [1, 2],        // nombre de rivières, de la source sur les hauteurs jusqu'au lac le plus proche (min, max)
+    riverWidth: 2,         // cases : largeur d'une rivière hors des hauteurs (1 sur les hauteurs)
+    moistScale: 11,        // cases : longueur d'onde de l'humidité (taille des bosquets et des clairières)
+    forestShare: 0.11,     // part des cases libres boisée (les plus humides)
+    scatterTrees: 0.006,   // probabilité d'un bouquet isolé (2 ou 3 arbres) ailleurs
+    wetReach: 4,           // cases : l'eau humidifie le sol jusqu'à cette distance
+    wetBonus: 0.22,        // humidité ajoutée au bord de l'eau (bosquets denses en lisière)
+    cliffBonus: 0.1,       // humidité au pied et au bord des falaises (lisières)
+    highDry: 0.14,         // sécheresse des hauteurs (moins d'arbres, plus de roche)
+    rockShare: 0.07,       // part des hauteurs où la roche affleure
+    rockScale: 4,          // cases : taille des affleurements
+    boulders: 0.002,       // probabilité d'un rocher isolé en plaine
+    // Contrôles de largeur (vérifiés par les tests Rust sur plusieurs graines, pas lus par la génération) :
+    openMin: 0.55,         // part minimale du sol libre dans une zone ouverte (case couverte par un carré libre de 7 × 7)
+    narrowMax: 6,          // nombre maximal de passages étroits (2 cases ou moins) entre deux niveaux
   },
 
   // Objets de boutique (K-08) : consommables achetés en Sève (boutique ouverte : 7, 8, 9, 0), utilisés avec 1–4
@@ -421,6 +460,8 @@ CF.data = {
     chewPerLevel: 0.04, // mastication en plus par niveau
     radius: 0.55,       // ×CELL : rayon de base
     radiusPerLevel: 0.05,
+    levelUpEvery: 40,   // ADR-009 : s de nuit — le niveau de base de la meute monte d'un cran à cet intervalle, en continu
+    spawnFloor: 5,      // ADR-009 : s — l'intervalle d'apparition ne descend jamais sous ce plancher
     growEvery: 18,      // s : une Cendre monte d'un niveau à cet intervalle (V3-01 : 12 ; V3-02 : 18, plus de plateau)
     growHeal: 25,       // PV rendus lors d'une montée de niveau
     spawnGrace: 0.8,    // s : lenteur (×spawnMove) juste après apparition
