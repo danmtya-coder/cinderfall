@@ -22,11 +22,19 @@
   #lives{display:flex;gap:4px;align-items:center}#lives i{width:10px;height:14px;border-radius:50% 50% 45% 45%;background:linear-gradient(#eafcff,#37c0ff);display:inline-block;opacity:.22}#lives i.on{opacity:1;box-shadow:0 0 8px #7ff0ff}
   #status{margin-left:auto;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:1px}#phase{font-weight:800;font-size:14px}#timer,#kills{font-size:11px;color:var(--dim)}
   #seal{font-size:11px;font-weight:800;color:#7fe0a0;display:none}#seal.on{display:block}
-  #mm{position:absolute;right:12px;bottom:12px;width:180px;height:120px;border-radius:10px;border:1px solid var(--stroke);background:#07050a;image-rendering:pixelated;pointer-events:none;box-shadow:0 10px 30px -12px #000}
-  #abilities{position:absolute;bottom:12px;left:12px;display:flex;gap:8px;pointer-events:none}
-  .ab{width:64px;height:64px;border-radius:15px;background:rgba(10,8,12,.6);backdrop-filter:blur(10px);border:1px solid var(--stroke);position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-  .ab .k{position:absolute;top:4px;left:6px;font-size:10px;color:var(--dim);font-weight:700}.ab .nm{font-size:10px;font-weight:700}.ab .co{position:absolute;inset:0;background:rgba(0,0,0,.66);transform-origin:bottom}.ab.rdy{box-shadow:0 0 0 1px rgba(127,240,255,.4),0 0 18px -6px var(--lueur)}.ab svg{width:22px;height:22px}
+  #mm{position:absolute;left:12px;bottom:12px;width:180px;height:120px;border-radius:10px;border:1px solid var(--stroke);background:#07050a;image-rendering:pixelated;pointer-events:none;box-shadow:0 10px 30px -12px #000}
+  /* command card (K-05) : grille en bas à droite ; raccourci en or, .sel = outil actif, .rdy = abordable/prêt, voile = recharge */
+  #card{position:absolute;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(4,58px);gap:6px;z-index:4}
+  .cc{position:relative;height:58px;border-radius:12px;background:rgba(10,8,12,.62);backdrop-filter:blur(10px);border:1px solid var(--stroke);color:var(--ink);font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;overflow:hidden;opacity:.6}
+  .cc svg{width:20px;height:20px}.cc .nm{font-size:9px;font-weight:700}.cc kbd{position:absolute;top:3px;left:4px;font-size:9px;padding:0 3px;border:0;background:none;color:var(--gold);font-weight:900}.cc em{position:absolute;top:3px;right:4px;font-size:9px;font-style:normal;color:var(--sap);font-weight:800}
+  .cc.rdy{opacity:1}.cc.sel{opacity:1;border-color:var(--sap);box-shadow:0 0 0 1px var(--sap),0 0 16px -4px var(--sap)}.cc .co{position:absolute;inset:0;background:rgba(0,0,0,.66);transform-origin:bottom;transform:scaleY(0);pointer-events:none}
+  #portrait{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:14px;background:rgba(10,8,12,.62);backdrop-filter:blur(10px);border:1px solid var(--stroke);pointer-events:none;z-index:4}
+  #pt-face{width:30px;height:30px;border-radius:50%;box-shadow:0 0 14px -2px #7ff0ff}#pt-night{font-size:13px;font-weight:900}#sapNum{color:var(--ink);font-weight:800;margin-left:4px}
   #night-toast{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.9);font-size:clamp(28px,6vw,64px);font-weight:900;letter-spacing:.02em;opacity:0;pointer-events:none;transition:opacity .4s,transform .4s;background:linear-gradient(180deg,#fff7df,var(--gold) 50%,var(--ember));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 30px #ff6a2b66)}
+  #b-horn{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);z-index:5;padding:10px 20px;font-size:14px}#b-horn.hidden{display:none}#b-horn kbd{margin-left:6px}
+  #tech-panel{position:absolute;right:12px;top:72px;z-index:5;width:250px;background:rgba(10,8,12,.82);backdrop-filter:blur(10px);border:1px solid var(--stroke);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}#tech-panel.hidden{display:none}#tech-panel h3{margin:0 0 2px;font-size:13px}
+  .tech{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:'k n c' 'k d p';gap:0 8px;align-items:center;text-align:left;cursor:pointer;font-family:inherit;color:var(--ink);background:rgba(246,239,228,.04);border:1px solid var(--stroke);border-radius:10px;padding:6px 8px;opacity:.55}
+  .tech.rdy{opacity:1;border-color:#7fe0a088;box-shadow:0 0 12px -6px var(--sap)}.tech:disabled{opacity:.35;cursor:default}.tech kbd{grid-area:k}.tech b{grid-area:n;font-size:12px}.tech span{grid-area:d;font-size:10px;color:var(--dim)}.tech i{grid-area:p;font-style:normal;font-size:9px;color:var(--sap)}.tech em{grid-area:c;font-style:normal;font-size:12px;font-weight:800;color:var(--gold)}
   #night-toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
   #toast{position:absolute;left:50%;bottom:90px;z-index:7;transform:translate(-50%,8px);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;background:rgba(10,8,12,.8);border:1px solid var(--stroke);border-radius:12px;padding:8px 14px;font-size:13px;font-weight:700}
   #toast.show{opacity:1;transform:translate(-50%,0)}
@@ -57,25 +65,33 @@
   <div id="stage">
     <canvas id="cv"></canvas>
     <div id="hud">
-      <div class="pill"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 3C12 3 5 11 5 15.5A7 7 0 0 0 19 15.5C19 11 12 3 12 3Z" fill="#7fe0a0"/></svg><div class="meter"><div class="cap">Sève</div><div class="bar"><i id="sapFill"></i></div></div></div>
+      <div class="pill"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 3C12 3 5 11 5 15.5A7 7 0 0 0 19 15.5C19 11 12 3 12 3Z" fill="#7fe0a0"/></svg><div class="meter"><div class="cap">Sève <b id="sapNum"></b></div><div class="bar"><i id="sapFill"></i></div></div></div>
       <div class="pill"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 2c1 4-2 5-2 8a4 4 0 0 0 8 0c0-1-.4-2-1-3 2 2 3 4 3 6a8 8 0 0 1-16 0C7 8 12 7 12 2Z" fill="#ff8a3c"/></svg><div class="meter"><div class="cap">Jusqu'à l'aube</div><div class="bar"><i id="clockFill"></i></div></div></div>
       <div class="pill" style="padding:8px 11px"><div id="lives"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
       <div id="status" class="pill" style="padding:7px 12px"><div id="phase">—</div><div id="timer"></div><div id="kills"></div><div id="seal">Enclos scellé</div></div>
     </div>
     <canvas id="mm" width="120" height="80"></canvas>
-    <div id="abilities">
-      <div class="ab" id="ab1"><span class="k">&amp;</span><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="#7ff0ff"/></svg><span class="nm">Élan</span><div class="co" id="co1"></div></div>
-      <div class="ab" id="ab2"><span class="k">é</span><svg viewBox="0 0 24 24"><path d="M12 3c1 3-1.5 4-1.5 6a3 3 0 0 0 6 0c0-.8-.3-1.5-.8-2 1.4 1.4 2.3 3 2.3 4.6a6 6 0 0 1-12 0C8 8 12 6 12 3Z" fill="#c8b4ff"/></svg><span class="nm" id="lureLab">Leurre 1x</span><div class="co" id="co2"></div></div>
-      <div class="ab" id="ab3"><span class="k">Clic D</span><svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="6" fill="#3aa7c0"/><rect x="11" y="3" width="2" height="8" rx="1" fill="#bff6ff"/><circle cx="12" cy="14" r="2.4" fill="#e8ffff"/></svg><span class="nm" id="towerLab">Tourelle 0/5</span><div class="co" id="co3"></div></div>
+    <div id="card" role="toolbar" aria-label="Commandes">
+      <button class="cc" id="cc-wall" title="Mur (F)"><kbd>F</kbd><svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="7" rx="1.5" fill="#cda570"/><path d="M3 12.5h18M9 9v3.5M15 12.5V16" stroke="#7a5a34" stroke-width="1.2"/></svg><span class="nm">Mur</span><em id="cc-wall-c"></em><i class="co" id="cc-wall-co"></i></button>
+      <button class="cc" id="cc-tower" title="Tourelle (T)"><kbd>T</kbd><svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="6" fill="#3aa7c0"/><rect x="11" y="3" width="2" height="8" rx="1" fill="#bff6ff"/><circle cx="12" cy="14" r="2.4" fill="#e8ffff"/></svg><span class="nm">Tourelle</span><em id="cc-tower-c"></em><i class="co" id="cc-tower-co"></i></button>
+      <button class="cc" id="cc-ruche" title="Ruche (R)"><kbd>R</kbd><svg viewBox="0 0 24 24"><path d="M12 4l7 4v8l-7 4-7-4V8z" fill="#58b867"/><path d="M12 8l3.5 2v4L12 16l-3.5-2v-4z" fill="#c9ffb0"/></svg><span class="nm">Ruche</span><em id="cc-ruche-c"></em><i class="co" id="cc-ruche-co"></i></button>
+      <button class="cc" id="cc-demolish" title="Démolir (X)"><kbd>X</kbd><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="#ff8a5c" stroke-width="3" stroke-linecap="round"/></svg><span class="nm">Démolir</span><em id="cc-demolish-c"></em><i class="co" id="cc-demolish-co"></i></button>
+      <button class="cc" id="cc-shop" title="Boutique (B)"><kbd>B</kbd><svg viewBox="0 0 24 24"><path d="M5 9h14l-1.5 10h-11z" fill="#ffca5c"/><path d="M9 9V7a3 3 0 0 1 6 0v2" stroke="#ffe08a" stroke-width="1.6" fill="none"/></svg><span class="nm">Boutique</span><em id="cc-shop-c"></em><i class="co" id="cc-shop-co"></i></button>
+      <button class="cc" id="cc-dash" title="Élan (Espace)"><kbd>Espace</kbd><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="#7ff0ff"/></svg><span class="nm">Élan</span><em id="cc-dash-c"></em><i class="co" id="cc-dash-co"></i></button>
+      <button class="cc" id="cc-lure" title="Leurre (L)"><kbd>L</kbd><svg viewBox="0 0 24 24"><path d="M12 3c1 3-1.5 4-1.5 6a3 3 0 0 0 6 0c0-.8-.3-1.5-.8-2 1.4 1.4 2.3 3 2.3 4.6a6 6 0 0 1-12 0C8 8 12 6 12 3Z" fill="#c8b4ff"/></svg><span class="nm">Leurre</span><em id="cc-lure-c"></em><i class="co" id="cc-lure-co"></i></button>
+      <button class="cc" id="cc-horn" title="Corne (Entrée)"><kbd>Entrée</kbd><svg viewBox="0 0 24 24"><path d="M4 10v4h3l7 4V6L7 10z" fill="#ffb04a"/><path d="M17 9a4 4 0 0 1 0 6" stroke="#ffe08a" stroke-width="1.6" fill="none"/></svg><span class="nm">Corne</span><em id="cc-horn-c"></em><i class="co" id="cc-horn-co"></i></button>
     </div>
+    <div id="portrait"><i id="pt-face"></i><b id="pt-night">Nuit 1 / 5</b></div>
     <div id="night-toast"></div>
+    <button class="cta horn hidden" id="b-horn">Sonner la corne <kbd>Entrée</kbd></button>
     <div id="toast" role="status"></div>
+    <div id="tech-panel" class="hidden"><h3>Boutique <kbd>B</kbd></h3><div id="tech-list"></div></div>
     <div id="veil">
       <div class="scr" id="scr-menu"><p class="logo">CINDERFALL</p><p class="tag">Une petite lueur, une nuit qui n'en finit pas, une meute de braises qui grandit. Bâtis, fortifie, tiens jusqu'à l'aube — cinq fois.</p>
         <div class="row"><button class="cta" id="b-play">Jouer</button><button class="ghost" id="b-shop">Braises <span class="braises" id="m-braises">0</span></button><button class="ghost" id="b-settings">Réglages</button><button class="ghost" id="b-fs">Plein écran</button></div>
         <p class="tag notice hidden" id="m-notice" role="alert"></p>
         <p class="tag" id="m-stats"></p>
-        <div class="hints"><span><kbd>ZQSD</kbd> bouger</span><span><kbd>Clic G</kbd> tirer un rempart</span><span><kbd>Shift</kbd>+tirer enclos</span><span><kbd>Ctrl</kbd>+clic démolir</span><span><kbd>Clic D</kbd> tourelle</span><span><kbd>&amp;</kbd> Élan</span><span><kbd>é</kbd> Leurre</span><span><kbd>Échap</kbd> pause</span><span id="m-pad">Manette prise en charge</span></div></div>
+        <div class="hints"><span><kbd>ZQSD</kbd> / <kbd>Clic D</kbd> bouger</span><span><kbd>F</kbd> mur</span><span><kbd>T</kbd> tourelle</span><span><kbd>R</kbd> ruche</span><span><kbd>X</kbd> démolir</span><span><kbd>Clic G</kbd> poser (mur : tirer, <kbd>Shift</kbd> enclos)</span><span><kbd>B</kbd> boutique</span><span><kbd>Entrée</kbd> corne</span><span><kbd>Espace</kbd> Élan</span><span><kbd>L</kbd> Leurre</span><span><kbd>Échap</kbd> annuler / pause</span><span id="m-pad">Manette prise en charge</span></div></div>
       <div class="scr hidden" id="scr-diff"><h2>Choisis ta nuit</h2><div class="cards" id="diff-list"></div><button class="ghost" id="b-diff-back">Retour</button></div>
       <div class="scr hidden" id="scr-shop"><h2>Braises <span class="braises" id="s-braises">0</span></h2><p class="tag">Des lueurs à collectionner. Rien qui change le jeu — seulement ton allure.</p><div class="cards" id="shop-list"></div><button class="ghost" id="b-shop-back">Retour</button></div>
       <div class="scr hidden" id="scr-settings"><h2>Réglages</h2>
@@ -187,10 +203,6 @@ const mergedDiff = () => { const D = CF.data.difficulty, out = {}; for (const id
 /* Améliorations d'aube — libellés seuls. Les magnitudes sont déclaratives dans CF.data.upgrades,
    appliquées par game.applyUpgrade. Ajouter une carte (B-08) = une ligne data + une ligne libellé. */
 const UPGRADE_META = {
-  mortier:   { name:'Mortier',          desc:'Tourelles : dégâts +25 %.' },
-  bastion:   { name:'Bastion',          desc:'Remparts : solidité +40 %.' },
-  macon:     { name:'Maçon',            desc:'Rempart : coût −1 Sève.' },
-  veilleuse: { name:'Veilleuse',        desc:'+1 tourelle maximum.' },
   lueur:     { name:'Seconde lueur',    desc:'+1 lueur (vie).' },
   souffle:   { name:'Souffle',          desc:'Élan : recharge −1 s.' },
   revenu:    { name:'Revenu',           desc:'Sève : +1 par seconde.' },
@@ -198,8 +210,27 @@ const UPGRADE_META = {
   portee:    { name:'Longue vue',       desc:'Tourelles : portée +20 %.' },
   cadence:   { name:'Cadence',          desc:'Tourelles : tir 25 % plus rapide.' },
 };
+/* Boutique de tech — libellés seuls (K-03). Effets, paliers et prix : CF.data.tech. */
+const TECH_META = {
+  rempart:   { name:'Remparts',  desc:'PV des murs ×1,35.' },
+  tourelle:  { name:'Tourelles', desc:'Dégâts des tourelles ×1,25.' },
+  bottes:    { name:'Bottes',    desc:'Vitesse ×1,10.' },
+  ruche:     { name:'Ruches',    desc:'Production des Ruches ×1,5.' },
+  veilleuse: { name:'Veilleuse', desc:'+1 tourelle maximum.' },
+  macon:     { name:'Maçon',     desc:'Mur : −1 Sève (min. 2).' },
+};
+/* Annonceur et phases — TEXTES seuls (K-01, ADR-004 §4). Durées et sons : CF.data.announcer. {x} = paramètre
+   fourni par game.js. Passera par CF.i18n en B-13. Chaque clé de data.announcer a son texte (vérifié par le test). */
+const ANNOUNCER = {
+  night1: 'Nuit {n} — la meute arrive', nightN: 'Nuit {n} — la meute revient plus forte', lastNight: 'Nuit {n} — la dernière nuit',
+  pack: 'La meute est là !', techBought: '{name} — palier {lvl}', techMax: '{name} : palier maximum', towerCap: '{cap} tourelles maximum', rucheCap: '{cap} ruches maximum', lure: 'Leurre lancé — les Cendres se détournent',
+  sealed: 'Enclos scellé !', breach: 'Brèche !', kill: 'Cendre éteinte ! +{bounty} Sève', grow: 'Une Cendre grandit !',
+  lifeLost: 'Lueur perdue — il t’en reste {lives}', packGrows: 'La meute grossit', encircle: 'Encerclement !', respawn: 'Une Cendre renaît…',
+};
+const PHASES = { night: 'Nuit {n}', prep: 'Nuit {n} — préparation : la corne dans {s} s', hunt: 'Nuit {n} — la chasse', siege: 'Nuit {n} — le siège', encircle: 'Nuit {n} — l’encerclement' };
+const fill = (t, p) => t.replace(/\{(\w+)\}/g, (m, k) => (p && p[k] != null ? p[k] : m));
 const mergedUpgrades = () => CF.data.upgrades.map(u => Object.assign({}, u, UPGRADE_META[u.id]));
-const defaultMods = () => ({ towerDmg:1, wallHP:1, wallCost:CF.data.economy.wallCost, towerCap:CF.data.tower.capBase, dashCd:CF.data.player.dashCd, income:CF.data.economy.income, lureRecharge:false, towerRange:1, towerRate:1 });
+const defaultMods = () => ({ speed:1, rucheMul:1, towerDmg:1, wallHP:1, wallCost:CF.data.economy.wallCost, towerCap:CF.data.tower.capBase, dashCd:CF.data.player.dashCd, income:CF.data.economy.income, lureRecharge:false, towerRange:1, towerRate:1 });
 
 /* Déblocages (cosmétiques et options de départ, jamais de puissance vendue) */
 const UNLOCKS = [
@@ -211,7 +242,8 @@ const UNLOCKS = [
 ];
 
 CF.meta = {
-  profile, settings, UNLOCKS, defaultMods, save,
+  profile, settings, UNLOCKS, defaultMods, save, ANNOUNCER, PHASES, TECH_META,
+  say: (key, p) => fill(ANNOUNCER[key], p), phase: (key, p) => fill(PHASES[key], p),
   storageKind: store.kind,                   // 'bridge' (Electron) | 'local' (localStorage) | 'memory' (non persistant)
   get DIFF() { return mergedDiff(); },       // vue fusionnée libellés + CF.data.difficulty
   get UPGRADES() { return mergedUpgrades(); }, // vue fusionnée libellés + CF.data.upgrades
@@ -247,7 +279,7 @@ CF.meta = {
 const CF = window.CF = window.CF || {};
 
 CF.data = {
-  version: 1,
+  version: 6,
 
   world: {
     NIGHTS: 5,        // nombre de nuits jusqu'à la victoire
@@ -260,7 +292,11 @@ CF.data = {
     sapStart: 90,          // Sève au début d'une partie
     contremaitreBonus: 30, // Sève de départ en plus si déblocage 'contremaitre'
     sapCap: 120,           // plafond de Sève
-    income: 2.5,           // Sève/s de base (avant modificateur de difficulté)
+    income: 1.0,           // Sève/s de base (avant modificateur de difficulté) — K-02 : l'économie, ce sont les Ruches
+    rucheCost: 40,         // Sève par Ruche (K-02)
+    rucheCap: 4,           // Ruches maximum
+    rucheIncome: 1.5,      // Sève/s produite par Ruche (× mods.rucheMul, tech K-03)
+    rucheRefund: 20,       // Sève rendue en démolissant une Ruche
     wallCost: 5,           // Sève par rempart
     towerCost: 50,         // Sève par tourelle
     wallRefund: 3,         // Sève rendue en démolissant un rempart
@@ -271,13 +307,14 @@ CF.data = {
 
   build: {
     wallHPMax: 1,          // PV plein d'un rempart neuf
+    rucheHPMax: 1.5,       // PV d'une Ruche (K-02 ; Rempart/Bastion ne la renforcent pas)
     wallRepairBelow: 0.98, // un rempart sous ce PV est réparable
     towerRepairBelow: 2.1, // une tourelle sous ce PV est réparable
     hunterOnRadius: 0.9,   // ×CELL : une case occupée par une Cendre est inconstructible
   },
 
   // Coûts de traversée pour le Dijkstra des Cendres (STONE = -1 = infranchissable).
-  path: { ground: 1, wet: 2, water: 3, wall: 12, tower: 12, stone: -1 },
+  path: { ground: 1, wet: 2, water: 3, wall: 12, tower: 12, ruche: 12, stone: -1 },
 
   enemy: {
     hp: 60,             // PV de base d'une Cendre niveau 0
@@ -315,6 +352,7 @@ CF.data = {
       wanderChance: 0.5,// probabilité/s (×dt) de cracher du feu en approche libre
       blockedTime: 0.9, // s bloquée avant que le feu de mastication s'amorce
       chewRange: 26,    // cases : portée max du feu de mastication vers la cible
+      rucheRange: 8,    // cases : une Cendre bloquée embrase la Ruche la plus proche dans ce rayon avant le mur (K-02)
       onPlayerRange: 6, // cases : sous cette distance, le feu vise le joueur, pas le mur
       wanderRange: 8,   // cases : portée du feu en approche libre
       teleChewR: 1.6,   // rayon (cases) de la parcelle enflammée par mastication
@@ -328,11 +366,23 @@ CF.data = {
   // Générée une fois depuis : initial=1+((n-1)/2|0), maxH=3+n, spawnEvery=max(22,46-5n),
   // firstDelay=(n===1?40:18), baseLevel=min(LEVELCAP,n-1). Puis FIGÉE : on règle ces lignes.
   nights: {
-    1: { initial: 1, maxH: 4, spawnEvery: 41, firstDelay: 40, baseLevel: 0 },
-    2: { initial: 1, maxH: 5, spawnEvery: 36, firstDelay: 18, baseLevel: 1 },
-    3: { initial: 2, maxH: 6, spawnEvery: 31, firstDelay: 18, baseLevel: 2 },
-    4: { initial: 2, maxH: 7, spawnEvery: 26, firstDelay: 18, baseLevel: 3 },
-    5: { initial: 3, maxH: 8, spawnEvery: 22, firstDelay: 18, baseLevel: 4 },
+    // grace (K-01, ADR-004 §3) : préparation en secondes avant la corne ; firstDelay court à partir de la corne.
+    1: { grace: 60, initial: 1, maxH: 4, spawnEvery: 41, firstDelay: 40, baseLevel: 0 },
+    2: { grace: 30, initial: 1, maxH: 5, spawnEvery: 36, firstDelay: 18, baseLevel: 1 },
+    3: { grace: 30, initial: 2, maxH: 6, spawnEvery: 31, firstDelay: 18, baseLevel: 2 },
+    4: { grace: 30, initial: 2, maxH: 7, spawnEvery: 26, firstDelay: 18, baseLevel: 3 },
+    5: { grace: 30, initial: 3, maxH: 8, spawnEvery: 22, firstDelay: 18, baseLevel: 4 },
+  },
+
+  // Annonceur (K-01, ADR-004 §4) : durée d'affichage (s) et son (méthode de audio) par clé.
+  // Les TEXTES vivent dans meta.js (ANNOUNCER) ; chaque clé a son texte (vérifié par le test).
+  announcer: {
+    night1:    { dur: 2.6, sfx: 'night' }, nightN:   { dur: 2.6, sfx: 'night' }, lastNight: { dur: 2.6, sfx: 'night' },
+    techBought: { dur: 1.4, sfx: 'buy' }, techMax: { dur: 1.2, sfx: 'deny' },
+    towerCap:  { dur: 1.2, sfx: 'deny' }, rucheCap: { dur: 1.2, sfx: 'deny' },               lure:     { dur: 1.8, sfx: 'lure' },
+    sealed:    { dur: 1.6, sfx: 'seal' },  breach:   { dur: 1.6, sfx: 'alarm' },
+    kill:      { dur: 1.6, sfx: 'kill' },  grow:     { dur: 1.6, sfx: 'grow' },  lifeLost: { dur: 2, sfx: 'lifeLost' },
+    pack:      { dur: 2.4, sfx: 'horn' },  packGrows: { dur: 1.8, sfx: 'spawn' }, encircle: { dur: 1.8, sfx: 'spawn' }, respawn: { dur: 1.5, sfx: 'spawn' },
   },
 
   // Difficultés — NOMBRES d'équilibrage seuls. Noms/descriptions/verrous vivent dans meta.js
@@ -347,16 +397,26 @@ CF.data = {
   // interprète {stat, op, value, min?, target?}. Ajouter une carte (B-08) = une ligne ici.
   //   op : 'mul' | 'add' | 'set'   · min : plancher après application   · target:'lives' agit sur les vies, sinon sur mods
   upgrades: [
-    { id: 'mortier',   stat: 'towerDmg',     op: 'mul', value: 1.25 }, // tourelles : dégâts +25 %
-    { id: 'bastion',   stat: 'wallHP',       op: 'mul', value: 1.4 },  // remparts : solidité +40 %
-    { id: 'macon',     stat: 'wallCost',     op: 'add', value: -1, min: 2 }, // rempart : coût −1 (plancher 2)
-    { id: 'veilleuse', stat: 'towerCap',     op: 'add', value: 1 },    // +1 tourelle maximum
+    // ADR-004 §7 (K-03) : l'aube garde les effets UNIQUES. Mortier, Bastion, Maçon et Veilleuse sont devenus des
+    // améliorations permanentes à paliers de la boutique de tech (data.tech) ; ids disjoints (vérifié par le test).
     { id: 'lueur',     stat: 'lives',        op: 'add', value: 1, target: 'lives' }, // +1 lueur (vie)
     { id: 'souffle',   stat: 'dashCd',       op: 'add', value: -1, min: 1 }, // Élan : recharge −1 s (plancher 1)
     { id: 'revenu',    stat: 'income',       op: 'add', value: 1 },    // Sève : +1/s
     { id: 'leurre',    stat: 'lureRecharge', op: 'set', value: true }, // Leurre rechargé chaque nuit
     { id: 'portee',    stat: 'towerRange',   op: 'mul', value: 1.2 },  // tourelles : portée +20 %
     { id: 'cadence',   stat: 'towerRate',    op: 'mul', value: 0.8 },  // tourelles : tir 25 % plus rapide (cd ×0,8)
+  ],
+
+  // Boutique de tech (K-03, ADR-004 §7) : améliorations PERMANENTES à paliers, achetées en temps réel (B, puis 1–6).
+  // Ordre = touches 1..6. Chaque palier applique l'effet déclaratif {stat, op, value, min?} via applyUpgrade ;
+  // costs[i] = prix du palier i+1. Ids disjoints de data.upgrades (vérifié par le test). Libellés : meta.TECH_META.
+  tech: [
+    { id: 'rempart',   stat: 'wallHP',   op: 'mul', value: 1.35,       costs: [60, 110, 180] }, // PV des murs ×1,35
+    { id: 'tourelle',  stat: 'towerDmg', op: 'mul', value: 1.25,       costs: [70, 120, 200] }, // dégâts des tourelles ×1,25
+    { id: 'bottes',    stat: 'speed',    op: 'mul', value: 1.10,       costs: [50, 100] },      // vitesse de Cindre ×1,10
+    { id: 'ruche',     stat: 'rucheMul', op: 'mul', value: 1.5,        costs: [80, 150] },      // production des Ruches ×1,5
+    { id: 'veilleuse', stat: 'towerCap', op: 'add', value: 1,          costs: [90, 160] },      // +1 tourelle maximum
+    { id: 'macon',     stat: 'wallCost', op: 'add', value: -1, min: 2, costs: [60, 120] },      // mur −1 Sève (plancher 2)
   ],
 
   tower: {
@@ -385,6 +445,8 @@ CF.data = {
     igniteTime: 0.55,    // s d'embrasement avant la perte d'une lueur
     respawnInvuln: 2.5,  // s d'invulnérabilité après une renaissance
     respawnMinDist: 12,  // cases : distance min aux Cendres pour renaître
+    waypointReach: 7,    // px : point de passage atteint (déplacement au clic droit, K-04)
+    arriveSpeed: 25,     // px/s : le DERNIER point n'est validé que sous cette vitesse (Cindre freine au lieu de glisser)
   },
 
   sim: {
@@ -432,11 +494,11 @@ const sprLure=bake(64,(x,s)=>grad(x,s,[[0,'rgba(230,215,255,.9)'],[.4,'rgba(180,
 const sprScorch=bake(64,(x,s)=>grad(x,s,[[0,'rgba(12,9,11,.85)'],[.6,'rgba(18,13,15,.5)'],[1,'rgba(18,13,15,0)']]));
 const grain=bake(128,(x,s)=>{const im=x.createImageData(s,s);for(let i=0;i<im.data.length;i+=4){const v=RNG.fx()*255;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=10;}x.putImageData(im,0,0);});
 
-const GROUND=0,BURNING=1,BURNT=2,WATER=3,STONE=4,WALL=5,WET=6,TOWER=7;
+const GROUND=0,BURNING=1,BURNT=2,WATER=3,STONE=4,WALL=5,WET=6,TOWER=7,RUCHE=8;
 let state,burn,dry,flow,wallHP,placedAt;
 let terrainC,scorchC,tctx,sctx,mmData,mmTmp,mmTmpX,lightC,lctx,glowC,gctx,bloomA,bloomB;
-let player,sap,clock,running,paused,dead,won,igniting,igniteT,phase,note,noteT,shake,cam,tick=0,nightTick=0;
-let hunters,parts,smoke,lures,teles,ab,flowT,spawns,mmT,rq,towers,shots,lives,invuln,kills,spawnT,lureUsed,dmgNums,shiftK=false,ctrlK=false;
+let player,sap,clock,running,paused,dead,won,igniting,igniteT,phase,note,noteT,shake,cam,tick=0,nightTick=0,graceTick=0,hornReq=false; // graceTick : préparation restante (K-01) ; hornReq : corne anticipée, consommée par un pas
+let hunters,parts,smoke,lures,teles,ab,flowT,spawns,mmT,rq,towers,ruches,techReq=[],shopOpen=false,tool=null,path=[],goal=null,moveMark=null,bfsPar,bfsQ,shots,lives,invuln,kills,spawnT,lureUsed,dmgNums,shiftK=false,ctrlK=false;
 let run=null,god=false; // run: {night, diff, mods, taken, score, active} · god: invulnérabilité de test
 
 /* ---------- terrain ---------- */
@@ -469,8 +531,8 @@ function gen(){
   buildTerrainCache();
 }
 const passable=i=>{const s=state[i];return s===GROUND||s===BURNT||s===BURNING||s===WET||s===WATER;};
-const moveOK=s=>s!==STONE&&s!==WALL&&s!==TOWER;
-const PATH=D.path,COST=s=>s===STONE?PATH.stone:s===WALL?PATH.wall:s===TOWER?PATH.tower:s===WATER?PATH.water:s===WET?PATH.wet:PATH.ground;
+const moveOK=s=>s!==STONE&&s!==WALL&&s!==TOWER&&s!==RUCHE;
+const PATH=D.path,COST=s=>s===STONE?PATH.stone:s===WALL?PATH.wall:s===TOWER?PATH.tower:s===RUCHE?PATH.ruche:s===WATER?PATH.water:s===WET?PATH.wet:PATH.ground;
 function off(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
 function buildTerrainCache(){
   terrainC=off(W,H);tctx=terrainC.getContext('2d');
@@ -498,20 +560,23 @@ function startRun(diffId,opts){
   run={night:1,diff,seed,mods:M.defaultMods(),taken:[],score:0,active:true,win:false,killsTotal:0};
   run.mods.income+=diff.income;
   gen();sap=D.economy.sapStart+(M.isUnlocked('contremaitre')?D.economy.contremaitreBonus:0);lives=D.startLives+diff.lives;kills=0;dmgNums=[];lureUsed=false;paused=false;dead=false;won=false;igniting=false;igniteT=0;invuln=0;shake=0;note="";noteT=0;
-  towers=[];shots=[];parts=[];smoke=[];ab={dash:0};mmT=0;tick=0;acc=0; // pas fixe (ADR-002) : tick et accumulateur remis à 0 → une partie ne dépend jamais de la précédente.
-  Object.assign(mouse,{x:VW/2,y:VH/2,wx:0,wy:0,down:false,rclick:false,over:false,sx:-1,sy:-1,gp:false,gpMove:null}); // réinit souris : pas d'état de construction qui fuit d'une partie à l'autre
+  towers=[];ruches=[];techReq=[];tool=null;path=[];goal=null;moveMark=null;run.tech={};toggleShop(false);shots=[];parts=[];smoke=[];ab={dash:0};mmT=0;tick=0;acc=0; // pas fixe (ADR-002) : tick et accumulateur remis à 0 → une partie ne dépend jamais de la précédente.
+  Object.assign(mouse,{x:VW/2,y:VH/2,wx:0,wy:0,down:false,rclick:false,lclick:false,over:false,sx:-1,sy:-1,gp:false,gpMove:null}); // réinit souris : pas d'état de construction qui fuit d'une partie à l'autre
   CF.ui&&CF.ui.setLives(lives);
   startNight();
 }
+// Annonceur (K-01, ADR-004 §4) : texte → meta, durée et son → data.announcer. Seul point d'écriture de note/noteT.
+function announce(key,params){const a=D.announcer[key];note=M.say(key,params);noteT=secToTick(a.dur);if(a.sfx)audio[a.sfx]();}
 function startNight(){
   const n=run.night,d=run.diff;
   hunters=[];rq=[];lures=[];teles=[];spawns=0;nightTick=0;clock=0;running=true;flowT=0;
   if(run.mods.lureRecharge)lureUsed=false;
   const nd=D.nights[n]||D.nights[NIGHTS];run.maxH=nd.maxH+d.extra;run.spawnEvery=secToTick(nd.spawnEvery);spawnT=secToTick(nd.firstDelay);run.baseLevel=nd.baseLevel;
-  for(let k=0;k<nd.initial;k++)spawnHunter(run.baseLevel);
-  phase=`Nuit ${n}`;note=`Nuit ${n} — ${n===1?"la meute arrive":n===NIGHTS?"la derniere nuit":"la meute revient plus forte"}`;noteT=secToTick(2.6);
-  CF.ui&&CF.ui.onNight(n);audio.night();
+  // Préparation (K-01, ADR-004 §3) : aucune Cendre ; la corne (fin du compte ou sortie anticipée) lâche les `initial`.
+  run.initial=nd.initial;graceTick=secToTick(nd.grace);hornReq=false;if(graceTick<=0)horn();
+  phase=M.phase('night',{n});CF.ui&&CF.ui.onNight(n);announce(n===1?'night1':n===NIGHTS?'lastNight':'nightN',{n});
 }
+function horn(){graceTick=0;for(let k=0;k<run.initial;k++)spawnHunter(run.baseLevel);announce('pack');shake=Math.max(shake,6);}
 // Applique une amélioration déclarative {stat, op, value, min?, target?} à mods (ou aux vies).
 function applyUpgrade(mods,def,ctx){
   const cur=def.target==='lives'?ctx.lives:mods[def.stat];
@@ -548,25 +613,33 @@ const audio=(()=>{let ac,mas,crk,rum,rumG,nb,rd=false,st=0;
     foot(){st++;if(st%2)return;blip(rndF(160,120),.05,'square',.05);},dash(){brst(.25,.2,3000);blip(400,.18,'sawtooth',.16,700);},
     wallN(k){blip(200*Math.pow(1.06,Math.min(k,16)),.07,'square',.1,-40);},repair(){blip(420,.08,'triangle',.1,120);},crack(){brst(.18,.25,1800);blip(120,.14,'square',.14,-40);},
     lure(){blip(520,.3,'sine',.2,300);blip(780,.25,'triangle',.12,180);},tele(){blip(300,.5,'sawtooth',.14,260);},ignite(){brst(.45,.4,2200);blip(220,.3,'sawtooth',.2,-120);},
-    tower(){blip(500,.15,'triangle',.16,300);blip(760,.2,'sine',.1);},shot(){blip(1200,.06,'square',.05,-500);},hit(){brst(.08,.12,3000);},
+    buy(){blip(660,.08,'sine',.12,220);blip(990,.14,'triangle',.08);},tower(){blip(500,.15,'triangle',.16,300);blip(760,.2,'sine',.1);},ruche(){blip(420,.12,'sine',.14,180);blip(630,.18,'triangle',.1,120);},deny(){blip(150,.14,'square',.08,-40);},shot(){blip(1200,.06,'square',.05,-500);},hit(){brst(.08,.12,3000);},
     kill(){brst(.5,.35,2000);[880,660,440].forEach((f,i)=>setTimeout(()=>blip(f,.25,'sawtooth',.18),i*70));},lifeLost(){blip(440,.5,'sawtooth',.2,-300);blip(220,.7,'sine',.16,-100);},
     seal(){[392,523,659].forEach((f,i)=>setTimeout(()=>blip(f,.35,'triangle',.2),i*90));},alarm(){blip(660,.18,'square',.16);setTimeout(()=>blip(520,.22,'square',.16),160);},
     grow(){brst(.4,.28,900);blip(90,.6,'sawtooth',.26,60);blip(180,.5,'square',.1,40);},spawn(){brst(.5,.3,1400);blip(120,.5,'sawtooth',.24,40);},
-    night(){[330,262,196].forEach((f,i)=>setTimeout(()=>blip(f,.6,'sine',.2),i*200));},win(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>blip(f,.5,'triangle',.28),i*140));},lose(){brst(1.1,.4,1300);blip(150,.7,'sawtooth',.3,-90);},
-    ui(){blip(880,.06,'sine',.08);}};
+    night(){[330,262,196].forEach((f,i)=>setTimeout(()=>blip(f,.6,'sine',.2),i*200));},win(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>blip(f,.5,'triangle',.28),i*140));},lose(){brst(1.1,.4,1300);blip(150,.7,'sawtooth',.3,-90);},horn(){[196,262,330].forEach((f,i)=>setTimeout(()=>blip(f,1,'sawtooth',.16,-8),i*90));brst(.7,.22,420);},
+    ui(){blip(880,.06,'sine',.08);},ack(){blip(720,.05,'sine',.07,80);}};
 })();
 
 /* ---------- entrées (clavier / souris) ---------- */
 const keys={};
-function keyMap(e,down){const k=e.key.toLowerCase(),c=e.code;keys[k]=down;if(c==='Digit1'||k==='&'||k==='1')keys.dash=down;if(c==='Digit2'||k==='é'||k==='2')keys.lure=down;
+function keyMap(e,down){const k=e.key.toLowerCase(),c=e.code;keys[k]=down;if(shopOpen&&/^Digit[1-6]$/.test(c))return; // boutique ouverte : 1–6 achètent (ADR-004 §2)
+  if(c==='Space')keys.dash=down;if(c==='KeyL')keys.lure=down; // ADR-004 §2 : Élan = Espace, Leurre = L
   if(e.key==='Shift')shiftK=down;if(e.key==='Control'||e.key==='Meta')ctrlK=down;}
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keyMap(e,true);
-  if(k==='escape'&&run&&run.active)CF.ui.togglePause();audio.resume();});
+  if(k==='escape'&&run&&run.active){if(tool)setTool(null);else if(shopOpen)toggleShop(false);else CF.ui.togglePause();}
+  if(running&&!paused&&TOOL_KEYS[e.code]&&!e.repeat)setTool(TOOL_KEYS[e.code]);
+  if(e.code==='KeyB'&&run&&run.active&&!paused)toggleShop();if(shopOpen&&/^Digit[1-6]$/.test(e.code)&&!e.repeat){const t=D.tech[+e.code.slice(5)-1];if(t)buyTech(t.id);}if(k==='enter'&&!paused)soundHorn();audio.resume();});
 addEventListener('keyup',e=>keyMap(e,false));
-const mouse={x:VW/2,y:VH/2,wx:0,wy:0,down:false,rclick:false,over:false,sx:-1,sy:-1};
+const mouse={x:VW/2,y:VH/2,wx:0,wy:0,down:false,rclick:false,lclick:false,over:false,sx:-1,sy:-1};
+// Outils (K-04, ADR-004 §2) : F mur, T tourelle, R ruche, X démolir ; re-pression = bascule ; sans outil, le clic gauche ne fait rien.
+const TOOL_KEYS={KeyF:'wall',KeyT:'tower',KeyR:'ruche',KeyX:'demolish'},TOOL_CYCLE=[null,'wall','tower','ruche','demolish'];
+function setTool(t,force){tool=(t==null||(!force&&tool===t))?null:t;mouse.down=false;mouse.sx=-1;mouse.sy=-1;}
+function cycleTool(){setTool(TOOL_CYCLE[(TOOL_CYCLE.indexOf(tool)+1)%TOOL_CYCLE.length],true);}
 cv.addEventListener('mousemove',e=>{const r=cv.getBoundingClientRect();mouse.x=(e.clientX-r.left)*VW/r.width;mouse.y=(e.clientY-r.top)*VH/r.height;mouse.over=true;});
 cv.addEventListener('mouseleave',()=>{mouse.over=false;});
-cv.addEventListener('mousedown',e=>{audio.resume();if(!running)return;if(e.button===0){if(e.ctrlKey||e.metaKey){demolish();return;}beginDrag();}if(e.button===2)mouse.rclick=true;});
+// Clic gauche = action de l'outil (mur : tracé immédiat ; autres : requête consommée par un pas). Clic droit = se déplacer.
+cv.addEventListener('mousedown',e=>{audio.resume();if(!running)return;if(e.button===0){if(tool==='wall')beginDrag();else if(tool)mouse.lclick=true;}if(e.button===2)mouse.rclick=true;});
 addEventListener('mouseup',e=>{if(e.button===0&&mouse.down){mouse.down=false;commitLine();}});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 function beginDrag(){mouse.down=true;mouse.sx=CX(mouse.x/ZOOM+cam.x);mouse.sy=CY(mouse.y/ZOOM+cam.y);}
@@ -584,18 +657,46 @@ function placeWall(cx,cy,k){const v=canBuild(cx,cy);if(!v||v===3||sap<wallCost()
   sap-=wallCost();flowT=Math.min(flowT,secToTick(D.sim.flowQuick));for(let j=0;j<3;j++)parts.push({x:cx*CELL+7,y:cy*CELL+9,vx:rndF(40,-40),vy:rndF(-10,-60),life:.4,age:0,c:'dust',s:rndF(3,1.5)});return true;}
 function commitLine(){if(!running){mouse.sx=-1;return;}const cells=lineCells();let k=0;for(const[x,y]of cells){if(placeWall(x,y,k))k++;}mouse.sx=-1;mouse.sy=-1;}
 function demolish(){if(!running)return;const cx=CX(mouse.wx),cy=CY(mouse.wy);if(!inRange(cx,cy))return;const i=I(cx,cy),st=state[i];
-  if(st===WALL){state[i]=GROUND;sap=Math.min(D.economy.sapCap,sap+D.economy.wallRefund);}else if(st===TOWER){state[i]=GROUND;sap=Math.min(D.economy.sapCap,sap+D.economy.towerRefund);}else return;
+  if(st===WALL){state[i]=GROUND;sap=Math.min(D.economy.sapCap,sap+D.economy.wallRefund);}else if(st===TOWER){state[i]=GROUND;sap=Math.min(D.economy.sapCap,sap+D.economy.towerRefund);}else if(st===RUCHE){state[i]=GROUND;sap=Math.min(D.economy.sapCap,sap+D.economy.rucheRefund);}else return;
   flowT=0;audio.crack();for(let j=0;j<8;j++)parts.push({x:cx*CELL+7,y:cy*CELL+7,vx:rndF(60,-60),vy:rndF(-20,-90),life:.5,age:0,c:'dust',s:rndF(3,1.5)});}
 function useTower(){if(!running)return;const cx=CX(mouse.wx),cy=CY(mouse.wy),v=canBuild(cx,cy),i=I(cx,cy);
   if(v===3){if(sap<D.economy.towerRepairCost)return;wallHP[i]=D.tower.hpMax;sap-=D.economy.towerRepairCost;audio.repair();return;}
-  if(v!==1||towers.length>=run.mods.towerCap||sap<TOWER_COST){if(towers.length>=run.mods.towerCap){note=`${run.mods.towerCap} tourelles maximum`;noteT=secToTick(1.2);}return;}
+  if(v!==1||towers.length>=run.mods.towerCap||sap<TOWER_COST){if(towers.length>=run.mods.towerCap)announce('towerCap',{cap:run.mods.towerCap});return;}
   state[i]=TOWER;wallHP[i]=D.tower.hpMax;placedAt[i]=tick;towers.push({i,cd:secToTick(D.tower.firstCd),ang:-Math.PI/2,flash:0});sap-=TOWER_COST;audio.tower();flowT=Math.min(flowT,secToTick(D.sim.flowQuick));
   for(let j=0;j<10;j++)parts.push({x:cx*CELL+7,y:cy*CELL+7,vx:rndF(60,-60),vy:rndF(-20,-90),life:.5,age:0,c:'sap',s:rndF(3,1.5)});}
+// Ruche (K-02, ADR-004 §1) : bâtiment d'économie, 1 case. Posée au curseur (touche R ; outil en K-04).
+function useRuche(){if(!running)return;const E=D.economy,cx=CX(mouse.wx),cy=CY(mouse.wy),i=I(cx,cy);if(canBuild(cx,cy)!==1)return;
+  if(ruches.length>=E.rucheCap){announce('rucheCap',{cap:E.rucheCap});return;}if(sap<E.rucheCost){audio.deny();return;}
+  state[i]=RUCHE;wallHP[i]=D.build.rucheHPMax;placedAt[i]=tick;ruches.push({i,ph:rndF(6.28)});sap-=E.rucheCost;audio.ruche();flowT=Math.min(flowT,secToTick(D.sim.flowQuick));
+  for(let j=0;j<10;j++)parts.push({x:cx*CELL+7,y:cy*CELL+7,vx:rndF(60,-60),vy:rndF(-20,-90),life:.5,age:0,c:'sap',s:rndF(3,1.5)});}
+// Revenu (K-02) : base (+ difficulté, + cartes) + production des Ruches.
+const income=()=>run.mods.income+ruches.length*D.economy.rucheIncome*run.mods.rucheMul;
+// Cible du feu d'une Cendre bloquée : la Ruche la plus proche dans fire.rucheRange cases, sinon le mur mâché (K-02).
+function fireCell(h,wallI){let best=wallI,bd=D.enemy.fire.rucheRange;for(const r of ruches){const d=Math.hypot((r.i%COLS)+.5-h.x/CELL,((r.i/COLS)|0)+.5-h.y/CELL);if(d<bd){bd=d;best=r.i;}}return best;}
+// Boutique de tech (K-03, ADR-004 §7) : le panneau est hors simulation ; un achat est une REQUÊTE consommée par un pas
+// (déterministe, prête pour le lockstep). Paliers permanents pour la partie, effet via applyUpgrade.
+function toggleShop(open){shopOpen=open==null?!shopOpen:!!open;CF.ui&&CF.ui.techPanel(shopOpen);}
+function buyTech(id){if(running)techReq.push(id);}
+function applyTech(id){const t=D.tech.find(x=>x.id===id);if(!t)return;const lv=run.tech[id]||0,name=M.TECH_META[id].name;
+  if(lv>=t.costs.length){announce('techMax',{name});return;}const c=t.costs[lv];if(sap<c){audio.deny();return;}
+  sap-=c;applyUpgrade(run.mods,t);run.tech[id]=lv+1;announce('techBought',{name,lvl:lv+1});}
+function techList(){return D.tech.map((t,k)=>{const lv=run?run.tech[t.id]||0:0,cost=lv<t.costs.length?t.costs[lv]:null;
+  return{id:t.id,key:k+1,name:M.TECH_META[t.id].name,desc:M.TECH_META[t.id].desc,level:lv,max:t.costs.length,cost,can:cost!=null&&!!run&&sap>=cost};});}
 function useDash(){if(!running||ab.dash>0)return;ab.dash=secToTick(run.mods.dashCd);const d=player.dir;player.vx+=d.x*D.player.dashImpulse;player.vy+=d.y*D.player.dashImpulse;player.dashT=secToTick(D.player.dashDur);player.sq=.7;audio.dash();
   for(let i=0;i<10;i++)parts.push({x:player.x,y:player.y,vx:-d.x*rndF(120,40)+rndF(40,-40),vy:-d.y*rndF(120,40)+rndF(40,-40),life:.4,age:0,c:'lueur',s:rndF(3,1.5)});}
-function useLure(){if(!running||lureUsed)return;lureUsed=true;lures.push({x:player.x,y:player.y,life:secToTick(D.lure.life),ph:0});audio.lure();flowT=0;note="Leurre lance — les Cendres se detournent";noteT=secToTick(1.8);
+function useLure(){if(!running||lureUsed)return;lureUsed=true;lures.push({x:player.x,y:player.y,life:secToTick(D.lure.life),ph:0});flowT=0;announce('lure');
   for(let i=0;i<16;i++)parts.push({x:player.x,y:player.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.6,age:0,c:'lure',s:rndF(3,1.5)});}
 
+/* ---------- déplacement au clic droit (K-04) ---------- */
+// BFS 4-connexe, ordre NB4 fixe (sans hasard : entre dans l'empreinte), sur les cases où Cindre marche (moveOK).
+// La case d'arrivée est la case ATTEIGNABLE la plus proche de la cible (cible dans la roche, ou enclavée).
+function findPath(tx,ty){const n=COLS*ROWS,s=I(CX(player.x),CY(player.y));if(!bfsPar){bfsPar=new Int32Array(n);bfsQ=new Int32Array(n);}bfsPar.fill(-2);
+  let h=0,t=0,best=s,bd=Infinity;bfsQ[t++]=s;bfsPar[s]=-1;
+  while(h<t){const c=bfsQ[h++],cx=c%COLS,cy=(c/COLS)|0,d=(cx-tx)*(cx-tx)+(cy-ty)*(cy-ty);if(d<bd){bd=d;best=c;if(!d)break;}
+    for(const[ox,oy]of NB4){const nx=cx+ox,ny=cy+oy;if(!inb(nx,ny))continue;const ni=I(nx,ny);if(bfsPar[ni]!==-2||!moveOK(state[ni]))continue;bfsPar[ni]=c;bfsQ[t++]=ni;}}
+  const out=[];for(let c=best;c!==s;c=bfsPar[c])out.push({i:c,x:(c%COLS)*CELL+CELL/2,y:((c/COLS)|0)*CELL+CELL/2});return out.reverse();}
+function orderCell(cx,cy){path=findPath(cx,cy);goal=path.length?[path[path.length-1].i%COLS,(path[path.length-1].i/COLS)|0]:[CX(player.x),CY(player.y)];}
+function orderMove(){orderCell(CX(mouse.wx),CY(mouse.wy));const end=path.length?path[path.length-1]:{x:player.x,y:player.y};moveMark={x:end.x,y:end.y,t:0,ph:rndF(6.28)};audio.ack();}
 /* ---------- pathfinding ---------- */
 let hD,hI,hN=0;
 function hPush(d,i){let k=hN++;hD[k]=d;hI[k]=i;while(k>0){const p=(k-1)>>1;if(hD[p]<=hD[k])break;[hD[p],hD[k]]=[hD[k],hD[p]];[hI[p],hI[k]]=[hI[k],hI[p]];k=p;}}
@@ -606,8 +707,8 @@ function computeFlow(){const tgt=lures.length?lures[0]:player,tx=CX(tgt.x),ty=CY
 let sealed=false,sq2,sseen;
 function checkSealed(){const n=COLS*ROWS;if(!sq2){sq2=new Int32Array(n);sseen=new Uint8Array(n);}sseen.fill(0);
   const hc=new Set(hunters.map(h=>I(CX(h.x),CY(h.y))));let head=0,tail=0;const st=I(CX(player.x),CY(player.y));sseen[st]=1;sq2[tail++]=st;let reach=false;
-  while(head<tail&&!reach){const c=sq2[head++];if(hc.has(c)){reach=true;break;}const cx=c%COLS,cy=(c/COLS)|0;for(const[ox,oy]of NB4){const nx=cx+ox,ny=cy+oy;if(!inb(nx,ny))continue;const ni=I(nx,ny);if(sseen[ni])continue;const s2=state[ni];if(s2===WALL||s2===STONE||s2===TOWER)continue;sseen[ni]=1;sq2[tail++]=ni;}}
-  const now=hunters.length>0&&!reach;if(now&&!sealed){audio.seal();note="Enclos scelle !";noteT=secToTick(1.6);}else if(!now&&sealed){audio.alarm();note="Breche !";noteT=secToTick(1.6);shake=Math.max(shake,3);}
+  while(head<tail&&!reach){const c=sq2[head++];if(hc.has(c)){reach=true;break;}const cx=c%COLS,cy=(c/COLS)|0;for(const[ox,oy]of NB4){const nx=cx+ox,ny=cy+oy;if(!inb(nx,ny))continue;const ni=I(nx,ny);if(sseen[ni])continue;const s2=state[ni];if(s2===WALL||s2===STONE||s2===TOWER||s2===RUCHE)continue;sseen[ni]=1;sq2[tail++]=ni;}}
+  const now=hunters.length>0&&!reach;if(now&&!sealed){announce('sealed');}else if(!now&&sealed){announce('breach');shake=Math.max(shake,3);}
   sealed=now;document.getElementById('seal').classList.toggle('on',sealed);}
 
 /* ---------- feu localisé (sous-cadence entière : appelé à tick % FIRE_EVERY, ADR-002 §4) ---------- */
@@ -618,7 +719,7 @@ function stepSim(){for(let i=0;i<state.length;i++){const s=state[i];
   else if(s===WET||s===BURNT){if(--dry[i]<=0)state[i]=GROUND;}}}
 function ignitePatch(te){const cx=CX(te.x),cy=CY(te.y),R=Math.ceil(te.r);let any=false;
   for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++){if(x*x+y*y>te.r*te.r)continue;const nx=cx+x,ny=cy+y;if(!inb(nx,ny))continue;const i=I(nx,ny),s=state[i];
-    if(s===GROUND||s===BURNT||s===WALL||s===TOWER){if(s===WALL||s===TOWER){stampScorch(i);flowT=0;}state[i]=BURNING;burn[i]=0;any=true;}}
+    if(s===GROUND||s===BURNT||s===WALL||s===TOWER||s===RUCHE){if(s===WALL||s===TOWER||s===RUCHE){stampScorch(i);flowT=0;}state[i]=BURNING;burn[i]=0;any=true;}}
   if(any){audio.ignite();shake=Math.max(shake,5);for(let k=0;k<16;k++)parts.push({x:te.x+rndF(20,-20),y:te.y+rndF(20,-20),vx:rndF(90,-90),vy:rndF(-40,-160),life:rndF(.8,.3),age:0,c:'ember',s:rndF(3,1.5)});}}
 
 /* ---------- Cendres ---------- */
@@ -628,23 +729,23 @@ function relocate(h){const cx=CX(h.x),cy=CY(h.y),RR=D.enemy.relocateRadius;
     h.x=nx*CELL+CELL/2;h.y=ny*CELL+CELL/2;h.vx=h.vy=0;h.stuck=0;h.spawn=secToTick(D.enemy.relocateGrace);for(let j=0;j<14;j++)parts.push({x:h.x,y:h.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.5,age:0,c:'ember',s:rndF(3,1.5)});return;}
   h.stuck=0;}
 function damageHunter(h,dmg,slowT){h.hp-=dmg;dmgNums.push({x:h.x+rndF(6,-6),y:h.y-h.r*2,v:Math.round(dmg),age:0});h.slow=Math.max(h.slow,slowT||0);h.pulse=Math.max(h.pulse,.15);
-  if(h.hp<=0){const k=hunters.indexOf(h);if(k>=0)hunters.splice(k,1);kills++;const bounty=D.economy.bounty.base+h.level*D.economy.bounty.perLevel;sap=Math.min(D.economy.sapCap,sap+bounty);audio.kill();note=`Cendre eteinte ! +${bounty} Seve`;noteT=secToTick(1.6);shake=Math.max(shake,4);
+  if(h.hp<=0){const k=hunters.indexOf(h);if(k>=0)hunters.splice(k,1);kills++;const bounty=D.economy.bounty.base+h.level*D.economy.bounty.perLevel;sap=Math.min(D.economy.sapCap,sap+bounty);announce('kill',{bounty});shake=Math.max(shake,4);
     for(let i=0;i<28;i++)parts.push({x:h.x,y:h.y,vx:rndF(160,-160),vy:rndF(60,-200),life:rndF(1,.4),age:0,c:'ember',s:rndF(3.5,1.5)});rq.push({t:secToTick(D.enemy.respawnDelay),level:Math.max(run.baseLevel,h.level-D.enemy.respawnDrop)});flowT=0;}}
 function updateHunters(){const d=run.diff,E=D.enemy,F=E.fire,wallMod=run.mods.wallHP;
   for(const h of hunters){
     h.spawn=Math.max(0,h.spawn-1);h.anim+=STEP*8;h.pulse=Math.max(0,h.pulse-STEP);h.fireCd=Math.max(0,h.fireCd-1);h.slow=Math.max(0,h.slow-1);
-    h.grow--;if(h.grow<=0){h.grow=secToTick(E.growEvery);if(h.level<LEVELCAP){h.level++;h.r=CELL*(E.radius+h.level*E.radiusPerLevel);h.maxHp=E.hp+h.level*E.hpPerLevel;h.hp=Math.min(h.maxHp,h.hp+E.growHeal);h.pulse=.8;audio.grow();note="Une Cendre grandit !";noteT=secToTick(1.6);}}
+    h.grow--;if(h.grow<=0){h.grow=secToTick(E.growEvery);if(h.level<LEVELCAP){h.level++;h.r=CELL*(E.radius+h.level*E.radiusPerLevel);h.maxHp=E.hp+h.level*E.hpPerLevel;h.hp=Math.min(h.maxHp,h.hp+E.growHeal);h.pulse=.8;announce('grow');}}
     const cx=CX(h.x),cy=CY(h.y),ci=I(cx,cy),cd=flow[ci],tgt=lures.length?lures[0]:player;
     let bst=null,bv=Infinity,bstWall=-1;
     for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oy)continue;const nx=cx+ox,ny=cy+oy;if(!inb(nx,ny))continue;const ni=I(nx,ny),st=state[ni];if(st===STONE)continue;const f=flow[ni];if(f<0)continue;
-      if(ox&&oy){if(st===WALL||st===TOWER||!moveOK(state[I(cx+ox,cy)])||!moveOK(state[I(cx,cy+oy)]))continue;}
-      if(f<bv){bv=f;bst=[nx,ny];bstWall=(st===WALL||st===TOWER)?ni:-1;}}
+      if(ox&&oy){if(st===WALL||st===TOWER||st===RUCHE||!moveOK(state[I(cx+ox,cy)])||!moveOK(state[I(cx,cy+oy)]))continue;}
+      if(f<bv){bv=f;bst=[nx,ny];bstWall=(st===WALL||st===TOWER||st===RUCHE)?ni:-1;}}
     const straight=Math.hypot(tgt.x-h.x,tgt.y-h.y)/CELL;let chewing=false,tx=tgt.x,ty=tgt.y;
     if(cd>=0&&bst&&bv<cd){tx=bst[0]*CELL+CELL/2;ty=bst[1]*CELL+CELL/2;
-      if(bstWall>=0){chewing=true;wallHP[bstWall]-=STEP*(E.chew+h.level*E.chewPerLevel)*d.chew/wallMod;if(!reduce()&&RNG.fx()<.4)parts.push({x:(bstWall%COLS)*CELL+7,y:((bstWall/COLS)|0)*CELL+7,vx:rndF(40,-40),vy:rndF(-20,-70),life:.4,age:0,c:'dust',s:rndF(3,1.5)});
+      if(bstWall>=0){chewing=true;wallHP[bstWall]-=STEP*(E.chew+h.level*E.chewPerLevel)*d.chew/(state[bstWall]===RUCHE?1:wallMod);if(!reduce()&&RNG.fx()<.4)parts.push({x:(bstWall%COLS)*CELL+7,y:((bstWall/COLS)|0)*CELL+7,vx:rndF(40,-40),vy:rndF(-20,-70),life:.4,age:0,c:'dust',s:rndF(3,1.5)});
         if(wallHP[bstWall]<=0){state[bstWall]=BURNT;dry[bstWall]=DRY_STEPS;stampScorch(bstWall);flowT=0;audio.crack();shake=Math.max(shake,2);}}}
     h.blocked=chewing?h.blocked+1:0;
-    if(chewing&&h.level>=F.chewLevel&&h.fireCd<=0&&h.blocked>secToTick(F.blockedTime)&&straight<F.chewRange){h.fireCd=secToTick(Math.max(F.minCd,F.cdBase-h.level*F.cdPerLevel));const wx=(bstWall%COLS)*CELL+CELL/2,wy=((bstWall/COLS)|0)*CELL+CELL/2;const onP=straight<F.onPlayerRange;teles.push({x:onP?tgt.x:wx,y:onP?tgt.y:wy,r:F.teleChewR,t:secToTick(F.teleTime),tot:secToTick(F.teleTime)});audio.tele();}
+    if(chewing&&h.level>=F.chewLevel&&h.fireCd<=0&&h.blocked>secToTick(F.blockedTime)&&straight<F.chewRange){h.fireCd=secToTick(Math.max(F.minCd,F.cdBase-h.level*F.cdPerLevel));const fc=fireCell(h,bstWall),wx=(fc%COLS)*CELL+CELL/2,wy=((fc/COLS)|0)*CELL+CELL/2;const onP=straight<F.onPlayerRange;teles.push({x:onP?tgt.x:wx,y:onP?tgt.y:wy,r:F.teleChewR,t:secToTick(F.teleTime),tot:secToTick(F.teleTime)});audio.tele();}
     else if(!chewing&&h.level>=F.wanderLevel&&h.fireCd<=0&&straight<F.wanderRange&&RNG.sim()<STEP*F.wanderChance){h.fireCd=secToTick(F.wanderCd);teles.push({x:tgt.x,y:tgt.y,r:F.teleWanderR,t:secToTick(F.teleTime),tot:secToTick(F.teleTime)});audio.tele();}
     const inWet=state[ci]===WET,inWater=state[ci]===WATER,spd=(E.speed+h.level*E.speedPerLevel+clock*E.speedClock)*d.spd*(h.spawn>0?E.spawnMove:1)*(inWet?E.wet:inWater?E.water:1)*(h.slow>0?E.slow:1);
     const ang=Math.atan2(ty-h.y,tx-h.x);h.vx=lerp(h.vx,Math.cos(ang)*spd,E.moveLerp);h.vy=lerp(h.vy,Math.sin(ang)*spd,E.moveLerp);
@@ -659,10 +760,11 @@ function caught(){if(invuln>0||igniting)return;igniting=true;igniteT=secToTick(D
 function respawnPlayer(){const ox=player.x,oy=player.y;let bx=-1,by=-1,bd=-1;
   for(let t=0;t<200;t++){const x=rnd(COLS-3,2)|0,y=rnd(ROWS-3,2)|0;if(state[I(x,y)]===STONE||state[I(x,y)]===WATER)continue;let dm=1e9;for(const h of hunters)dm=Math.min(dm,Math.hypot(h.x-x*CELL,h.y-y*CELL));if(dm<CELL*D.player.respawnMinDist)continue;
     const sc=dm-Math.hypot(x*CELL-ox,y*CELL-oy)*.35;if(sc>bd){bd=sc;bx=x;by=y;}}
-  if(bx>=0){player.x=bx*CELL+CELL/2;player.y=by*CELL+CELL/2;}player.vx=player.vy=0;invuln=secToTick(D.player.respawnInvuln);audio.lifeLost();note=`Lueur perdue — il t'en reste ${lives}`;noteT=secToTick(2);
+  if(bx>=0){player.x=bx*CELL+CELL/2;player.y=by*CELL+CELL/2;}player.vx=player.vy=0;invuln=secToTick(D.player.respawnInvuln);announce('lifeLost',{lives});
   for(let i=0;i<16;i++)parts.push({x:player.x,y:player.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.6,age:0,c:'lueur',s:rndF(3,1.5)});CF.ui.setLives(lives);}
 function threatDist(){let b=1e9;for(const h of hunters)b=Math.min(b,Math.hypot(h.x-player.x,h.y-player.y));for(const te of teles)b=Math.min(b,Math.hypot(te.x-player.x,te.y-player.y));const cx=CX(player.x),cy=CY(player.y);for(let y=-3;y<=3;y++)for(let x=-3;x<=3;x++)if(inb(cx+x,cy+y)&&state[I(cx+x,cy+y)]===BURNING)b=Math.min(b,Math.hypot(x,y)*CELL);return b;}
 function updateDefenses(){const T=D.tower,range=CELL*T.range*run.mods.towerRange;
+  for(let k=ruches.length-1;k>=0;k--){const r=ruches[k];if(state[r.i]!==RUCHE){ruches.splice(k,1);continue;}r.ph+=STEP*2;} // brûlée, mâchée ou démolie : retirée
   for(let k=towers.length-1;k>=0;k--){const tw=towers[k];if(state[tw.i]!==TOWER){towers.splice(k,1);continue;}tw.cd--;tw.flash=Math.max(0,tw.flash-STEP);
     const tx=(tw.i%COLS)*CELL+CELL/2,ty=((tw.i/COLS)|0)*CELL+CELL/2;let bh=null,bd=range;for(const h of hunters){const d=Math.hypot(h.x-tx,h.y-ty);if(d<bd){bd=d;bh=h;}}
     if(bh){const ta=Math.atan2(bh.y-ty,bh.x-tx);let da=ta-tw.ang;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;tw.ang+=da*Math.min(1,STEP*T.turn);
@@ -673,19 +775,27 @@ function updateDefenses(){const T=D.tower,range=CELL*T.range*run.mods.towerRange
 
 /* ---------- update ---------- */
 function update(){
-  tick++;nightTick++;for(const k in ab)ab[k]=Math.max(0,ab[k]-1);noteT=Math.max(0,noteT-1);invuln=Math.max(0,invuln-1);if(god)invuln=secToTick(1);
+  tick++;
+  // Préparation : la nuit (horloge, vagues, renaissances) est gelée ; la Sève coule et le joueur bâtit.
+  if(graceTick>0){if(hornReq||--graceTick<=0)horn();}else nightTick++;
+  hornReq=false;
+  for(const k in ab)ab[k]=Math.max(0,ab[k]-1);noteT=Math.max(0,noteT-1);invuln=Math.max(0,invuln-1);if(god)invuln=secToTick(1);
   let ix=0,iy=0;if(keys['z']||keys['w']||keys['arrowup'])iy--;if(keys['s']||keys['arrowdown'])iy++;if(keys['q']||keys['a']||keys['arrowleft'])ix--;if(keys['d']||keys['arrowright'])ix++;
   if(mouse.gpMove){ix+=mouse.gpMove.x;iy+=mouse.gpMove.y;}
+  if(path.length){if(ix||iy)path=[];else{const w=path[0],dx=w.x-player.x,dy=w.y-player.y,last=path.length===1;
+    // dernier point : on continue de viser (donc de freiner) tant que Cindre n'est pas presque à l'arrêt, sinon l'inertie l'emporte d'une case
+    if(Math.hypot(dx,dy)<D.player.waypointReach&&(!last||Math.hypot(player.vx,player.vy)<D.player.arriveSpeed))path.shift();else{ix=dx;iy=dy;}}}
   const l=Math.hypot(ix,iy);if(l>0){ix/=l;iy/=l;player.dir={x:ix,y:iy};player.face=ix<0?-1:ix>0?1:player.face;}
   const accel=D.player.acc;player.vx=(player.vx+ix*accel*STEP)*frictionPerTick;player.vy=(player.vy+iy*accel*STEP)*frictionPerTick;player.dashT=Math.max(0,player.dashT-1);
-  const onWater=state[I(CX(player.x),CY(player.y))]===WATER,maxv=(D.player.maxSpeed+(player.dashT>0?D.player.dashBoost:0))*(onWater?D.player.water:1);
+  const onWater=state[I(CX(player.x),CY(player.y))]===WATER,maxv=(D.player.maxSpeed*run.mods.speed+(player.dashT>0?D.player.dashBoost:0))*(onWater?D.player.water:1);
   const sp=Math.hypot(player.vx,player.vy);if(sp>maxv){player.vx*=maxv/sp;player.vy*=maxv/sp;}
   let nx2=player.x+player.vx*STEP,ny2=player.y+player.vy*STEP;
   if(state[I(CX(nx2),CY(player.y))]===STONE){nx2=player.x;player.vx*=D.player.bounce;}if(state[I(CX(player.x),CY(ny2))]===STONE){ny2=player.y;player.vy*=D.player.bounce;}
   player.x=clamp(nx2,player.r,W-player.r);player.y=clamp(ny2,player.r,H-player.r);
   mouse.wx=mouse.x/ZOOM+cam.x;mouse.wy=mouse.y/ZOOM+cam.y;
-  if(keys.dash)useDash();if(mouse.rclick){mouse.rclick=false;useTower();}if(keys.lure)useLure();
-  sap=Math.min(D.economy.sapCap,sap+run.mods.income*STEP);
+  if(keys.dash)useDash();if(mouse.lclick){mouse.lclick=false;if(tool==='tower')useTower();else if(tool==='ruche')useRuche();else if(tool==='demolish')demolish();}
+  if(mouse.rclick){mouse.rclick=false;orderMove();}while(techReq.length)applyTech(techReq.shift());if(keys.lure)useLure();
+  sap=Math.min(D.economy.sapCap,sap+income()*STEP);
   for(let k=dmgNums.length-1;k>=0;k--){const d=dmgNums[k];d.age+=STEP;d.y-=22*STEP;if(d.age>.8)dmgNums.splice(k,1);}
   if(sp>30){player.step+=STEP*sp*.05;if(Math.sin(player.step)>.9)audio.foot();}
   player.sq=lerp(player.sq,1,Math.min(1,STEP*12));player.velStretch=clamp(sp/D.player.maxSpeed,0,1);player.blink-=STEP;if(player.blink<0)player.blink=rndF(4.5,2.2);
@@ -693,9 +803,9 @@ function update(){
   for(let k=lures.length-1;k>=0;k--){const lu=lures[k];lu.life--;lu.ph+=STEP*4;if(lu.life<=0){lures.splice(k,1);flowT=0;}}
   for(let k=teles.length-1;k>=0;k--){const te=teles[k];te.t--;if(te.t<=0){ignitePatch(te);teles.splice(k,1);}}
   clock=Math.min(1,nightTick/NIGHT_TICKS);
-  spawnT--;if(spawnT<=0&&spawns<run.maxH){spawnT=run.spawnEvery;spawnHunter(run.baseLevel);audio.spawn();note=spawns>=run.maxH?"Encerclement !":"La meute grossit";noteT=secToTick(1.8);}
-  for(let k=rq.length-1;k>=0;k--){rq[k].t--;if(rq[k].t<=0){const lv=rq[k].level;rq.splice(k,1);spawns--;spawnHunter(lv);audio.spawn();note="Une Cendre renait...";noteT=secToTick(1.5);}}
-  phase=`Nuit ${run.night} — ${clock<.33?"la chasse":clock<.66?"le siege":"l'encerclement"}`;
+  if(!graceTick){spawnT--;if(spawnT<=0&&spawns<run.maxH){spawnT=run.spawnEvery;spawnHunter(run.baseLevel);announce(spawns>=run.maxH?'encircle':'packGrows');}
+  for(let k=rq.length-1;k>=0;k--){rq[k].t--;if(rq[k].t<=0){const lv=rq[k].level;rq.splice(k,1);spawns--;spawnHunter(lv);announce('respawn');}}}
+  phase=graceTick?M.phase('prep',{n:run.night,s:Math.ceil(graceTick/60)}):M.phase(clock<.33?'hunt':clock<.66?'siege':'encircle',{n:run.night});
   flowT--;if(flowT<=0){computeFlow();checkSealed();flowT=secToTick(D.sim.flowInterval);}
   updateHunters();updateDefenses();
   if(tick%FIRE_EVERY===0)stepSim();
@@ -706,7 +816,7 @@ function update(){
   // Cosmétique (hors empreinte) : avance au pas fixe, déterministe sur le flux fx (ADR-002 §7).
   for(let k=parts.length-1;k>=0;k--){const p=parts[k];p.age+=STEP;if(p.age>=p.life){parts.splice(k,1);continue;}p.x+=p.vx*STEP;p.y+=p.vy*STEP;p.vy+=(p.c==='sap'||p.c==='dust'?300:-14)*STEP;}
   for(let k=smoke.length-1;k>=0;k--){const s=smoke[k];s.age+=STEP;if(s.age>=s.life){smoke.splice(k,1);continue;}s.x+=s.vx*STEP;s.y+=s.vy*STEP;s.vy-=4*STEP;}
-  shake=Math.max(0,shake-STEP*22);
+  shake=Math.max(0,shake-STEP*22);if(moveMark){moveMark.t+=STEP;if(moveMark.t>=.7)moveMark=null;}
   // Caméra dans la simulation (pas fixe) : la construction lit mouse.wx=…+cam.x, elle doit être déterministe.
   const lookX=(mouse.x-VW/2)/ZOOM*.18,lookY=(mouse.y-VH/2)/ZOOM*.18;
   cam.x=lerp(cam.x,clamp(player.x-VWZ/2+lookX,0,W-VWZ),camK);cam.y=lerp(cam.y,clamp(player.y-VHZ/2+lookY,0,H-VHZ),camK);
@@ -714,7 +824,7 @@ function update(){
 }
 
 /* ---------- rendu ---------- */
-const MMC={[GROUND]:[76,62,40],[BURNING]:[255,140,40],[BURNT]:[30,22,24],[WATER]:[38,110,125],[STONE]:[86,92,102],[WALL]:[205,165,112],[WET]:[80,190,210],[TOWER]:[127,240,255]};
+const MMC={[GROUND]:[76,62,40],[BURNING]:[255,140,40],[BURNT]:[30,22,24],[WATER]:[38,110,125],[STONE]:[86,92,102],[WALL]:[205,165,112],[WET]:[80,190,210],[TOWER]:[127,240,255],[RUCHE]:[140,230,120]};
 function buildMinimap(){const d=mmData.data;for(let i=0;i<state.length;i++){const c=MMC[state[i]];d[i*4]=c[0];d[i*4+1]=c[1];d[i*4+2]=c[2];d[i*4+3]=255;}mmTmpX.putImageData(mmData,0,0);}
 function drawMinimap(){mmx.imageSmoothingEnabled=false;mmx.drawImage(mmTmp,0,0,COLS,ROWS);mmx.strokeStyle='rgba(246,239,228,.35)';mmx.lineWidth=1;mmx.strokeRect(cam.x/CELL,cam.y/CELL,VWZ/CELL,VHZ/CELL);
   for(const h of hunters){mmx.fillStyle='#ff6a2b';mmx.beginPath();mmx.arc(h.x/CELL,h.y/CELL,2.2,0,7);mmx.fill();}for(const lu of lures){mmx.fillStyle='#c8b4ff';mmx.beginPath();mmx.arc(lu.x/CELL,lu.y/CELL,2,0,7);mmx.fill();}
@@ -753,12 +863,12 @@ function drawCreature(e,t,menace){
 function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 function drawLights(ox,oy){lctx.globalCompositeOperation='source-over';lctx.fillStyle='rgba(6,4,10,.78)';lctx.fillRect(0,0,VW,VH);lctx.globalCompositeOperation='destination-out';
   const cut=(x,y,r,a)=>{const sx=(x-ox)*ZOOM,sy=(y-oy)*ZOOM,sr=r*ZOOM;if(sx<-sr||sy<-sr||sx>VW+sr||sy>VH+sr)return;const g=lctx.createRadialGradient(sx,sy,0,sx,sy,sr);g.addColorStop(0,`rgba(0,0,0,${a})`);g.addColorStop(.55,`rgba(0,0,0,${a*.55})`);g.addColorStop(1,'rgba(0,0,0,0)');lctx.fillStyle=g;lctx.fillRect(sx-sr,sy-sr,sr*2,sr*2);};
-  cut(player.x,player.y,CELL*8.5,1);for(const tw of towers)cut((tw.i%COLS)*CELL+CELL/2,((tw.i/COLS)|0)*CELL+CELL/2,CELL*5.6,.9);
+  cut(player.x,player.y,CELL*8.5,1);for(const r of ruches)cut((r.i%COLS)*CELL+CELL/2,((r.i/COLS)|0)*CELL+CELL/2,CELL*3.6,.8);for(const tw of towers)cut((tw.i%COLS)*CELL+CELL/2,((tw.i/COLS)|0)*CELL+CELL/2,CELL*5.6,.9);
   for(const h of hunters)cut(h.x,h.y,CELL*(3+h.level*.3),.9);for(const lu of lures)cut(lu.x,lu.y,CELL*3.5,.8);for(const te of teles)cut(te.x,te.y,CELL*3,.7);
   let n=0;for(let i=0;i<state.length&&n<50;i+=3)if(state[i]===BURNING){cut((i%COLS)*CELL+CELL/2,((i/COLS)|0)*CELL+CELL/2,CELL*2.4,.8);n++;}
   lctx.globalCompositeOperation='source-over';ctx.drawImage(lightC,0,0);}
 function draw(t){
-  const sk=shake*M.settings.shake,sx=sk>0?rndF(sk,-sk):0,sy=sk>0?rndF(sk,-sk):0,ox=cam.x+sx,oy=cam.y+sy;
+  const sk=shakeAmp(),sx=sk>0?rndF(sk,-sk):0,sy=sk>0?rndF(sk,-sk):0,ox=cam.x+sx,oy=cam.y+sy;
   ctx.drawImage(terrainC,ox,oy,VWZ,VHZ,0,0,VW,VH);ctx.drawImage(scorchC,ox,oy,VWZ,VHZ,0,0,VW,VH);
   ctx.save();ctx.scale(ZOOM,ZOOM);ctx.translate(-ox,-oy);
   const x0=Math.max(0,(ox/CELL|0)-2),x1=Math.min(COLS-1,((ox+VWZ)/CELL|0)+2),y0=Math.max(0,(oy/CELL|0)-2),y1=Math.min(ROWS-1,((oy+VHZ)/CELL|0)+2);
@@ -768,6 +878,11 @@ function draw(t){
       ctx.fillStyle='rgba(0,0,0,.4)';rr(px+2,py+5,CELL-1+(R?2:0),CELL-1+(D?2:0),4);ctx.fill();ctx.fillStyle='#4e3624';rr(px+1,py+4,CELL-2+(R?2:0),CELL-4+(D?2:0),R||D?2:4);ctx.fill();
       ctx.fillStyle='#7a5738';rr(px+1,py+1,CELL-2+(R?2:0),CELL-5+(D?4:0),R||D?2:4);ctx.fill();ctx.fillStyle=`rgba(224,186,134,${.3+hp*.5})`;rr(px+3,py+2,CELL-6+(R?4:0),CELL*.3,2);ctx.fill();ctx.restore();
       if(hp<.6){ctx.strokeStyle='rgba(30,15,10,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+3,py+CELL-4);ctx.lineTo(px+CELL/2,py+5);ctx.lineTo(px+CELL-3,py+CELL-5);ctx.stroke();}}
+    else if(s===RUCHE){const cx2=px+CELL/2,cy2=py+CELL/2,hp=wallHP[i]/D.build.rucheHPMax,r=ruches.find(q=>q.i===i),ph=r?r.ph:0,age=(tick-placedAt[i])*STEP,pop=age<.3?1-Math.pow(1-age/.3,2)*Math.cos(age*36)*.4:1;
+      ctx.save();ctx.translate(cx2,cy2);ctx.scale(pop,pop);const hex=(R,c)=>{ctx.fillStyle=c;ctx.beginPath();for(let k=0;k<6;k++){const a=k*Math.PI/3+Math.PI/6;ctx.lineTo(Math.cos(a)*R,Math.sin(a)*R);}ctx.closePath();ctx.fill();};
+      ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.arc(1,5,CELL*.62,0,7);ctx.fill();hex(CELL*.66,'#2f6b3a');hex(CELL*.5,'#58b867');hex(CELL*.24,'#c9ffb0');
+      if(!reduce())for(let k=0;k<3;k++){const a=ph+k*2.09;ctx.fillStyle='#f4ffb8';ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(Math.cos(a)*CELL*.85,Math.sin(a*1.3)*CELL*.6-3,1.6,0,7);ctx.fill();}ctx.globalAlpha=1;
+      if(hp<.98){ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(-CELL*.5,-CELL*.9,CELL,3);ctx.fillStyle=hp>.5?'#9ff3a0':'#ffb04a';ctx.fillRect(-CELL*.5,-CELL*.9,CELL*Math.max(0,hp),3);}ctx.restore();}
     else if(s===TOWER){const hp=wallHP[i]/2.2,cx2=px+CELL/2,cy2=py+CELL/2,tw=towers.find(q=>q.i===i),ang=tw?tw.ang:-Math.PI/2,age=(tick-placedAt[i])*STEP,pop=age<.3?1-Math.pow(1-age/.3,2)*Math.cos(age*36)*.4:1;
       ctx.save();ctx.translate(cx2,cy2);ctx.scale(pop,pop);ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.arc(1,5,CELL*.66,0,7);ctx.fill();
       ctx.fillStyle='#1e4f5b';ctx.beginPath();ctx.arc(0,2,CELL*.66,0,7);ctx.fill();ctx.fillStyle='#2b6f7c';ctx.beginPath();ctx.arc(0,-1,CELL*.56,0,7);ctx.fill();
@@ -791,14 +906,25 @@ function draw(t){
   for(const p of parts){const a=1-p.age/p.life;if(p.c==='sap')ctx.fillStyle='#9ff3c0';else if(p.c==='dust')ctx.fillStyle='#b99b78';else if(p.c==='steam')ctx.fillStyle='#d8f6ff';else continue;ctx.globalAlpha=a;ctx.fillRect(p.x-p.s/2,p.y-p.s/2,p.s,p.s);}
   ctx.globalAlpha=1;
   if(running){ctx.setLineDash([5,7]);ctx.strokeStyle='rgba(127,240,255,.2)';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(player.x,player.y,RANGE*CELL,0,7);ctx.stroke();ctx.setLineDash([]);
-    if(mouse.over||mouse.gp){const cells=lineCells();let budget=sap,cnt=0;const wc=wallCost();
+    if(moveMark&&!reduce()){const k=moveMark.t/.7,r=CELL*(.9-.5*k);ctx.strokeStyle=`rgba(140,255,160,${1-k})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(moveMark.x,moveMark.y,r,r*.55,0,0,7);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(moveMark.x,moveMark.y,r*.45,r*.25,moveMark.ph,0,7);ctx.stroke();}
+    if(tool&&tool!=='wall'&&(mouse.over||mouse.gp)){const bx=CX(mouse.wx),by=CY(mouse.wy),st=state[I(bx,by)],cost=tool==='tower'?TOWER_COST:D.economy.rucheCost,
+      ok=tool==='demolish'?inRange(bx,by)&&(st===WALL||st===TOWER||st===RUCHE):canBuild(bx,by)===1&&sap>=cost;
+      ctx.fillStyle=ok?(tool==='demolish'?'rgba(255,200,80,.25)':'rgba(127,240,255,.22)'):'rgba(255,90,60,.14)';rr(bx*CELL+1,by*CELL+1,CELL-2,CELL-2,4);ctx.fill();
+      ctx.strokeStyle=ok?'rgba(190,255,255,.9)':'rgba(255,120,90,.7)';ctx.lineWidth=1.5;rr(bx*CELL+1,by*CELL+1,CELL-2,CELL-2,4);ctx.stroke();
+      const gx=bx*CELL+CELL/2,gy=by*CELL+CELL/2;ctx.save();ctx.strokeStyle=ok?'rgba(190,255,255,.75)':'rgba(255,120,90,.6)';ctx.lineWidth=1.5;
+      if(tool==='tower'){ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(gx,gy,CELL*D.tower.range*run.mods.towerRange,0,7);ctx.stroke();}
+      else if(tool==='ruche'){ctx.beginPath();for(let k=0;k<6;k++){const a=k*Math.PI/3+Math.PI/6;ctx.lineTo(gx+Math.cos(a)*CELL*.7,gy+Math.sin(a)*CELL*.7);}ctx.closePath();ctx.stroke();}
+      else{ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(gx-4,gy-4);ctx.lineTo(gx+4,gy+4);ctx.moveTo(gx+4,gy-4);ctx.lineTo(gx-4,gy+4);ctx.stroke();}ctx.restore();}
+    if(tool==='wall'&&(mouse.over||mouse.gp)){const cells=lineCells();let budget=sap,cnt=0;const wc=wallCost();
       for(const[bx,by]of cells){const v=canBuild(bx,by),ok=(v===1||v===2)&&budget>=wc;if(ok){budget-=wc;cnt++;}
-        ctx.fillStyle=ok?'rgba(127,240,255,.22)':(ctrlK?'rgba(255,200,80,.2)':'rgba(255,90,60,.14)');rr(bx*CELL+1,by*CELL+1,CELL-2,CELL-2,4);ctx.fill();
-        ctx.strokeStyle=ok?'rgba(190,255,255,.9)':(ctrlK?'rgba(255,220,120,.9)':'rgba(255,120,90,.7)');ctx.lineWidth=1.5;rr(bx*CELL+1,by*CELL+1,CELL-2,CELL-2,4);ctx.stroke();}
+        ctx.fillStyle=ok?'rgba(127,240,255,.22)':'rgba(255,90,60,.14)';rr(bx*CELL+1,by*CELL+1,CELL-2,CELL-2,4);ctx.fill();
+        ctx.strokeStyle=ok?'rgba(190,255,255,.9)':'rgba(255,120,90,.7)';ctx.lineWidth=1.5;rr(bx*CELL+1,by*CELL+1,CELL-2,CELL-2,4);ctx.stroke();}
       if(mouse.down&&cells.length>1){ctx.fillStyle='rgba(10,8,12,.8)';const tx=mouse.wx+10,ty=mouse.wy-10,lab=`${cnt} mur${cnt>1?'s':''} · ${cnt*wc} Seve`;ctx.font='700 8px ui-rounded,system-ui,sans-serif';const w=ctx.measureText(lab).width+10;rr(tx,ty-9,w,13,4);ctx.fill();ctx.fillStyle='#f6efe4';ctx.fillText(lab,tx+5,ty+1);}}}
   for(const h of hunters){drawCreature(h,t,true);if(h.hp<h.maxHp){const w=CELL*1.6,x=h.x-w/2,y=h.y-h.r*2.4;ctx.fillStyle='rgba(0,0,0,.5)';rr(x-1,y-1,w+2,5,2);ctx.fill();ctx.fillStyle='#ff6a2b';rr(x,y,w*Math.max(0,h.hp/h.maxHp),3,1.5);ctx.fill();}}
   for(const sh of shots){ctx.fillStyle='#bff6ff';ctx.beginPath();ctx.arc(sh.x,sh.y,2.6,0,7);ctx.fill();ctx.fillStyle='rgba(127,240,255,.35)';ctx.beginPath();ctx.arc(sh.x,sh.y,5,0,7);ctx.fill();}
   ctx.font='800 7px ui-rounded,system-ui,sans-serif';ctx.textAlign='center';for(const d of dmgNums){const a=1-d.age/.8;ctx.fillStyle=`rgba(0,0,0,${a*.6})`;ctx.fillText(d.v,d.x+1,d.y+1);ctx.fillStyle=`rgba(191,246,255,${a})`;ctx.fillText(d.v,d.x,d.y);}ctx.textAlign='start';
+  if(!won){const pu=reduce()?1:1+.07*Math.sin(tick*STEP*5),rx=player.r*1.7*pu;ctx.strokeStyle='rgba(120,255,140,.8)';ctx.lineWidth=1.6;ctx.beginPath();ctx.ellipse(player.x,player.y+player.r*.7,rx,rx*.45,0,0,7);ctx.stroke();}
   if(!won&&!(invuln>0&&Math.floor(t*14)%2===0))drawCreature(player,t,false);
   ctx.restore();
   {const a=bloomA.getContext('2d'),b=bloomB.getContext('2d');a.clearRect(0,0,bloomA.width,bloomA.height);a.drawImage(glowC,0,0,bloomA.width,bloomA.height);b.clearRect(0,0,bloomB.width,bloomB.height);b.drawImage(bloomA,0,0,bloomB.width,bloomB.height);
@@ -807,12 +933,16 @@ function draw(t){
   if(clock>.3){ctx.globalAlpha=(clock-.3)*.45;const dg=ctx.createLinearGradient(0,0,0,VH);dg.addColorStop(0,'#5a6bb0');dg.addColorStop(.5,'rgba(0,0,0,0)');dg.addColorStop(1,'rgba(255,138,60,.12)');ctx.fillStyle=dg;ctx.fillRect(0,0,VW,VH);ctx.globalAlpha=1;}
   const v=ctx.createRadialGradient(VW/2,VH/2,VH*.34,VW/2,VH/2,VH*.8);v.addColorStop(0,'rgba(255,90,30,0)');v.addColorStop(1,`rgba(120,25,12,${.1+clock*.25})`);ctx.fillStyle=v;ctx.fillRect(0,0,VW,VH);
   drawMinimap();}
-function hud(){if(!run)return;const $=id=>document.getElementById(id);
+// Secousse effective : coupée par reduceMotion, dosée par settings.shake (invariant d'accessibilité, ADR-004 §9).
+function shakeAmp(){return reduce()?0:shake*M.settings.shake;}
+function hud(){if(!run)return;const $=id=>document.getElementById(id);if(shopOpen)CF.ui.techRefresh();$('b-horn').classList.toggle('hidden',!(running&&graceTick>0));
   $('sapFill').style.width=(sap/1.2)+'%';$('clockFill').style.width=(clock*100)+'%';$('phase').textContent=noteT>0?note:phase;
   $('timer').textContent=running?`${Math.round((1-clock)*NIGHT_LEN)} s avant l'aube`:'';$('kills').textContent=`${run.killsTotal+kills} eteinte${run.killsTotal+kills>1?'s':''} · ${hunters.length} en chasse`;
-  const ab1=$('ab1'),co1=$('co1');co1.style.transform=`scaleY(${ab.dash>0?ab.dash/secToTick(run.mods.dashCd):0})`;ab1.classList.toggle('rdy',ab.dash<=0);
-  const ab2=$('ab2');$('co2').style.transform=`scaleY(${lureUsed?1:0})`;ab2.classList.toggle('rdy',!lureUsed);$('lureLab').textContent=lureUsed?(run.mods.lureRecharge?'Leurre (nuit suiv.)':'Leurre utilise'):'Leurre 1x';
-  const ab3=$('ab3'),okT=towers.length<run.mods.towerCap&&sap>=TOWER_COST;ab3.classList.toggle('rdy',okT);ab3.style.opacity=okT?1:.55;$('towerLab').textContent=`Tourelle ${towers.length}/${run.mods.towerCap}`;}
+  CF.ui.cardRefresh();}
+// État lu par la command card (K-05) — lecture seule, hors simulation.
+function cardState(){if(!run)return null;return{tool,sap,income:income(),shop:shopOpen,grace:running&&graceTick>0,night:run.night,nights:NIGHTS,
+  cost:{wall:wallCost(),tower:TOWER_COST,ruche:D.economy.rucheCost},towers:towers.length,towerCap:run.mods.towerCap,ruches:ruches.length,rucheCap:D.economy.rucheCap,
+  dash:ab.dash>0?ab.dash/secToTick(run.mods.dashCd):0,lureUsed};}
 
 /* ---------- boucle ---------- */
 let last=performance.now(),acc=0;
@@ -826,20 +956,24 @@ function frame(now){const real=(now-last)/1000;last=now;const t=now/1000;
   if(run)draw(t);hud();requestAnimationFrame(frame);}
 addEventListener('visibilitychange',()=>{last=performance.now();acc=0;}); // retour d'onglet : pas de rattrapage
 
-CF.game={startRun,commitLine,beginDrag,useTower,useDash,useLure,demolish,mouse,keys,audio,
-  get running(){return running;},get paused(){return paused;},set paused(v){paused=v;},get run(){return run;},
+// Corne anticipée (Entrée, bouton) : simple requête, appliquée au pas suivant (déterministe, prête pour le lockstep).
+function soundHorn(){if(running&&graceTick>0)hornReq=true;}
+CF.game={startRun,commitLine,beginDrag,useTower,useDash,useLure,demolish,soundHorn,toggleShop,buyTech,techList,setTool,cycleTool,cardState,mouse,keys,audio,
+  get running(){return running;},get shopOpen(){return shopOpen;},get tool(){return tool;},get paused(){return paused;},set paused(v){paused=v;},get run(){return run;},
   setShift(v){shiftK=v;},setCtrl(v){ctrlK=v;},abandon(){if(run&&run.active){run.active=false;running=false;}},
-  dev:{dawn(){nightTick=NIGHT_TICKS;},god(v){god=!!v;},seed(n){RNG.seed(n);},applyUpgrade,
-    state(){return{night:run&&run.night,lives,sap,kills,hunters:hunters.length,towers:towers.length,running,clock,tick};},
+  dev:{dawn(){graceTick=0;nightTick=NIGHT_TICKS;},skipGrace:soundHorn,shakeAmp,god(v){god=!!v;},seed(n){RNG.seed(n);},applyUpgrade,
+    state(){return{night:run&&run.night,lives,sap,kills,hunters:hunters.length,towers:towers.length,running,clock,tick,grace:graceTick,nightTick,ruches:ruches.length,income:income(),tool,path:path.length,goal,cell:[CX(player.x),CY(player.y)]};},orderCell,fireCell,findPath,
+    cellState(cx,cy){return inb(cx,cy)?state[I(cx,cy)]:-1;},walkable(cx,cy){return inb(cx,cy)&&moveOK(state[I(cx,cy)]);},
+    rucheCells(){return ruches.map(r=>r.i);},ignite(i){ignitePatch({x:(i%COLS)*CELL+CELL/2,y:((i/COLS)|0)*CELL+CELL/2,r:.4});},
     // Minuteries de simulation en ticks (tests de durée : une durée data.js en secondes doit durer secToTick(s) ticks).
-    timers(){return{tick,nightTick,dash:ab.dash,dashT:player.dashT,invuln,igniteT,lures:lures.map(l=>l.life),rclick:mouse.rclick};},secToTick,
+    timers(){return{tick,nightTick,dash:ab.dash,dashT:player.dashT,invuln,igniteT,lures:lures.map(l=>l.life),rclick:mouse.rclick,lclick:mouse.lclick};},secToTick,
     // Empreinte déterministe pour tools/baseline.json : seul le flux sim y entre (jamais fx).
     snapshot(){const R=v=>Math.round(v*1e4)/1e4;let walls=0,hash=2166136261;
       for(let i=0;i<state.length;i++){if(state[i]===WALL)walls++;hash=(Math.imul(hash^state[i],16777619))>>>0;}
       return{seed:run&&run.seed,tick,nightTick,night:run&&run.night,clock:R(clock),lives,sap:R(sap),kills,
         player:{x:R(player.x),y:R(player.y),vx:R(player.vx),vy:R(player.vy)},
         hunters:hunters.map(h=>({x:R(h.x),y:R(h.y),hp:R(h.hp),level:h.level,fireCd:R(h.fireCd)})),
-        walls,towers:towers.length,stateHash:hash};}},
+        walls,towers:towers.length,ruches:ruches.length,mods:run&&Object.assign({},run.mods),stateHash:hash};}},
   boot(){requestAnimationFrame(frame);}};
 })();
 
@@ -883,6 +1017,7 @@ $('b-set-back').onclick=()=>{ui();settingsFrom==='pause'?pause():menu();};
 /* pause */
 function pause(){CF.game.paused=true;show('pause');}
 function resume(){CF.game.paused=false;hide();}
+$('b-horn').onclick=()=>{ui();CF.game.soundHorn();}; // corne anticipée (K-01)
 $('b-resume').onclick=()=>{ui();resume();};$('b-p-settings').onclick=()=>{ui();settings('pause');};
 $('b-quit').onclick=()=>{ui();CF.game.abandon();menu();};
 
@@ -899,13 +1034,38 @@ function showResults(st,gain){$('r-title').textContent=st.win?"L'aube finale !":
   show('results');}
 $('b-r-again').onclick=()=>{ui();diff();};$('b-r-menu').onclick=()=>{ui();menu();};
 
+/* boutique de tech (K-03) — panneau en jeu, hors simulation : lit CF.game.techList(), achète via CF.game.buyTech.
+   Rafraîchi à chaque frame tant qu'il est ouvert (la Sève monte : « abordable » doit suivre). */
+function techPanel(open){$('tech-panel').classList.toggle('hidden',!open);if(open)techRefresh();}
+function techRefresh(){const box=$('tech-list'),list=CF.game.techList();
+  if(box.children.length!==list.length){box.innerHTML='';for(const t of list){const b=document.createElement('button');b.className='tech';b.onclick=()=>{ui();CF.game.buyTech(t.id);};box.appendChild(b);}}
+  list.forEach((t,k)=>{const b=box.children[k],sig=t.level+'|'+t.can;if(b._sig===sig)return;b._sig=sig;b.disabled=t.cost==null;b.classList.toggle('rdy',t.can);
+    b.innerHTML=`<kbd>${t.key}</kbd><b>${esc(t.name)}</b><span>${esc(t.desc)}</span><i>${'●'.repeat(t.level)}${'○'.repeat(t.max-t.level)}</i><em>${t.cost==null?'max':t.cost}</em>`;});}
+/* command card (K-05, ADR-004 §5) — rendu seul ; la simulation n'est touchée que par CF.game (setTool, toggleShop,
+   useDash, useLure, soundHorn, cardState). Rafraîchie par game.hud() à chaque frame. */
+const CARD={wall:()=>CF.game.setTool('wall'),tower:()=>CF.game.setTool('tower'),ruche:()=>CF.game.setTool('ruche'),demolish:()=>CF.game.setTool('demolish'),
+  shop:()=>CF.game.toggleShop(),dash:()=>CF.game.useDash(),lure:()=>CF.game.useLure(),horn:()=>CF.game.soundHorn()};
+for(const id in CARD)$('cc-'+id).onclick=()=>{ui();CARD[id]();cardRefresh();};
+const num=v=>(Math.round(v*10)/10).toString().replace('.',',');
+function cardRefresh(){const s=CF.game.cardState();if(!s)return;
+  const set=(id,sel,rdy,cost,co)=>{const b=$('cc-'+id);b.className='cc'+(sel?' sel':'')+(rdy?' rdy':'');$('cc-'+id+'-c').textContent=cost==null?'':cost;$('cc-'+id+'-co').style.transform=`scaleY(${co||0})`;};
+  set('wall',s.tool==='wall',s.sap>=s.cost.wall,s.cost.wall);
+  set('tower',s.tool==='tower',s.sap>=s.cost.tower&&s.towers<s.towerCap,s.cost.tower,s.towers>=s.towerCap?1:0);
+  set('ruche',s.tool==='ruche',s.sap>=s.cost.ruche&&s.ruches<s.rucheCap,s.cost.ruche,s.ruches>=s.rucheCap?1:0);
+  set('demolish',s.tool==='demolish',true);set('shop',s.shop,true);
+  set('dash',false,s.dash<=0,null,s.dash);set('lure',false,!s.lureUsed,null,s.lureUsed?1:0);set('horn',false,s.grace,null,s.grace?0:1);
+  $('sapNum').textContent=`${Math.floor(s.sap)} (+${num(s.income)}/s)`;$('pt-night').textContent=`Nuit ${s.night} / ${s.nights}`;
+  const sk=M.skin();$('pt-face').style.background=`radial-gradient(circle at 50% 60%,${sk.flame[0]},${sk.flame[1]} 55%,${sk.flame[2]})`;}
+function tool(t){CF.game.setTool(t,true);cardRefresh();}
 function setLives(n){document.querySelectorAll('#lives i').forEach((el,k)=>{el.classList.toggle('on',k<n);el.style.display=k<Math.max(3,n)?'':'none';});}
 function onNight(n){const el=$('night-toast');el.textContent=`Nuit ${n}`;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200);}
-CF.ui={menu,showDraft,showResults,setLives,onNight,togglePause(){if(!CF.game.run||!CF.game.run.active)return;CF.game.paused?resume():pause();},pause,resume};
+CF.ui={menu,showDraft,showResults,setLives,onNight,techPanel,techRefresh,cardRefresh,tool,togglePause(){if(!CF.game.run||!CF.game.run.active)return;CF.game.paused?resume():pause();},pause,resume};
 })();
 
 /* ==== src/input.js ==== */
-/* CINDERFALL — manette (Gamepad API) : stick G bouger, stick D curseur, A rempart (maintenir = tirer), B tourelle, X élan, Y leurre, LB enclos, Start pause */
+/* CINDERFALL — manette (Gamepad API), K-04 (ADR-004 §2) : stick G bouger, stick D curseur, A action de l'outil actif
+   (sans outil : prend le Mur ; maintenir = tirer une ligne), B Tourelle (sélection + pose), X Élan, Y Leurre,
+   RB cycle d'outils unique (mur → tourelle → ruche → démolir → aucun), LB enclos, Start pause */
 (() => {
 "use strict";
 const CF=window.CF;let prev={},cur={x:480,y:320},active=false;
@@ -917,9 +1077,14 @@ function poll(dt){const gps=navigator.getGamepads?navigator.getGamepads():[];con
   m.gp=true;m.gpMove={x:lx,y:ly};
   if(rx||ry){cur.x=Math.max(0,Math.min(960,cur.x+rx*520*dt));cur.y=Math.max(0,Math.min(640,cur.y+ry*520*dt));m.x=cur.x;m.y=cur.y;m.over=true;}
   const b=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed),edge=i=>{const v=b(i),e=v&&!prev[i];prev[i]=v;return e;};
-  if(edge(0))g.beginDrag();if(!b(0)&&prev.a0){m.down=false;g.commitLine();}prev.a0=b(0);
-  if(edge(1)){m.wx=m.x/1.6+0;g.mouse.rclick=true;}
-  if(b(2))g.keys.dash=true;else g.keys.dash=false;if(b(3))g.keys.lure=true;else g.keys.lure=false;
+  if(g.running){
+    if(edge(0)){if(!g.tool)g.setTool('wall',true);if(g.tool==='wall')g.beginDrag();else m.lclick=true;}
+    if(!b(0)&&prev.a0&&m.down){m.down=false;g.commitLine();}
+    if(edge(1)){g.setTool('tower',true);m.lclick=true;}
+    if(edge(5))g.cycleTool();
+  }
+  prev.a0=b(0);
+  g.keys.dash=b(2);g.keys.lure=b(3);
   g.setShift(b(4));
   if(edge(9))CF.ui.togglePause();}
 CF.input={poll};
