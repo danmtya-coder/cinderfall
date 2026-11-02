@@ -7,6 +7,8 @@ self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Pr
 self.addEventListener('fetch', e => {
   const r = e.request;
   if (r.method !== 'GET' || new URL(r.url).origin !== location.origin) return;
-  // navigation (y compris ?seed=… pour W-05) → la page du jeu en cache
+  // navigation vers la page du jeu (y compris ?seed=… pour W-05) → la page en cache. Les autres pages du site
+  // (ex. /rust/, la version Rust en test, ADR-008) ne sont jamais détournées vers le jeu JS.
+  if (r.mode === 'navigate' && new URL(r.url).pathname !== new URL('./', location).pathname) return;
   e.respondWith(caches.open(V).then(c => c.match(r.mode === 'navigate' ? './' : r, { ignoreSearch: true }).then(hit => hit || fetch(r))));
 });
