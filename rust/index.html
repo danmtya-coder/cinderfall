@@ -31,6 +31,16 @@ miniquad_add_plugin({ name: "cf_store", version: 1, register_plugin: function (o
   o.env.cf_sv_push = function (c) { out += String.fromCharCode(c); };
   o.env.cf_sv_end = function () { try { localStorage.setItem(K, out); return 1; } catch (e) { return 0; } };
 } });
+// ADR-017 : le jour UTC (Nuit du jour), la requête du lien et l'adresse de base pour écrire les liens
+miniquad_add_plugin({ name: "cf_link", version: 1, register_plugin: function (o) {
+  var qs = "", base = "";
+  try { qs = String(location.search || "").slice(0, 300); base = String(location.origin + location.pathname).slice(0, 300); } catch (e) {}
+  o.env.cf_day = function () { try { return Math.floor(Date.now() / 86400000); } catch (e) { return 0; } };
+  o.env.cf_qs_len = function () { return qs.length; };
+  o.env.cf_qs_at = function (i) { return qs.charCodeAt(i) | 0; };
+  o.env.cf_base_len = function () { return base.length; };
+  o.env.cf_base_at = function (i) { return base.charCodeAt(i) | 0; };
+} });
 load("cinderfall.wasm");
 // « Partager » (écran de fin) : le jeu dépose un texte court (graine, score) dans le presse-papiers de miniquad ; on le
 // recopie aussitôt dans celui du navigateur (le clic ou la touche vient d'avoir lieu : c'est bien un geste du joueur).
