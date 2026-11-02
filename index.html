@@ -90,7 +90,7 @@
   </div>
 </div>
 <script>
-window.CF=window.CF||{};CF.build={"target":"web"};
+(window.CF=window.CF||{}).build={"target":"web"};
 /* ==== src/rng.js ==== */
 /* CINDERFALL — générateur pseudo-aléatoire déterministe (module autonome, aucune dépendance)
  *
@@ -413,6 +413,11 @@ const rnd=(a=1,b=0)=>b+RNG.sim()*(a-b),rndF=(a=1,b=0)=>b+RNG.fx()*(a-b),clamp=(v
 const I=(x,y)=>y*COLS+x,inb=(x,y)=>x>=0&&y>=0&&x<COLS&&y<ROWS,CX=px=>clamp(px/CELL|0,0,COLS-1),CY=py=>clamp(py/CELL|0,0,ROWS-1);
 const NB4=[[1,0],[-1,0],[0,1],[0,-1]];
 const D=CF.data,{NIGHTS,NIGHT_LEN,LEVELCAP,RANGE}=D.world,TOWER_COST=D.economy.towerCost;
+// Pas de temps fixe (ADR-002) : toute la simulation avance de STEP par tick entier ; les durées de
+// data.js (secondes) sont converties une fois via secToTick. Précalculs (A5) des expressions ex-dt.
+const STEP=1/60,secToTick=s=>Math.round(s*60),NIGHT_TICKS=NIGHT_LEN*60;
+const FIRE_EVERY=6,BURN_STEPS=Math.round(D.sim.burnTime/(FIRE_EVERY*STEP)),DRY_STEPS=Math.round(D.sim.dryTime/(FIRE_EVERY*STEP));
+const frictionPerTick=Math.pow(D.player.friction,STEP),camK=1-Math.pow(.002,STEP);
 const reduce=()=>M.settings.reduceMotion||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 /* sprites */
@@ -430,7 +435,7 @@ const grain=bake(128,(x,s)=>{const im=x.createImageData(s,s);for(let i=0;i<im.da
 const GROUND=0,BURNING=1,BURNT=2,WATER=3,STONE=4,WALL=5,WET=6,TOWER=7;
 let state,burn,dry,flow,wallHP,placedAt;
 let terrainC,scorchC,tctx,sctx,mmData,mmTmp,mmTmpX,lightC,lctx,glowC,gctx,bloomA,bloomB;
-let player,sap,clock,running,paused,dead,won,igniting,igniteT,phase,note,noteT,shake,cam,tnow=0;
+let player,sap,clock,running,paused,dead,won,igniting,igniteT,phase,note,noteT,shake,cam,tick=0,nightTick=0;
 let hunters,parts,smoke,lures,teles,ab,flowT,spawns,mmT,rq,towers,shots,lives,invuln,kills,spawnT,lureUsed,dmgNums,shiftK=false,ctrlK=false;
 let run=null,god=false; // run: {night, diff, mods, taken, score, active} · god: invulnérabilité de test
 
@@ -451,7 +456,7 @@ function ensureConnected(sx,sy){const n=COLS*ROWS,reach=new Uint8Array(n),isG=i=
     while(h<q.length){const c=q[h++];if(reach[c]){found=c;break;}const cx=c%COLS,cy=(c/COLS)|0;for(const[ox,oy]of NB4){const nx=cx+ox,ny=cy+oy;if(!inb(nx,ny))continue;const ni=I(nx,ny);if(par[ni]!==-1)continue;par[ni]=c;q.push(ni);}}
     if(found<0)return;let c=found;while(c!==seed){if(state[c]===STONE||state[c]===WATER)state[c]=GROUND;c=par[c];}}}
 function gen(){
-  const n=COLS*ROWS;state=new Uint8Array(n);burn=new Float32Array(n);dry=new Float32Array(n);flow=new Int16Array(n);wallHP=new Float32Array(n);placedAt=new Float32Array(n);
+  const n=COLS*ROWS;state=new Uint8Array(n);burn=new Int16Array(n);dry=new Int16Array(n);flow=new Int16Array(n);wallHP=new Float32Array(n);placedAt=new Int32Array(n);
   for(let i=0;i<n;i++)state[i]=GROUND;
   for(let k=0;k<11;k++)enclosure(rnd(COLS-18,3)|0,rnd(ROWS-16,3)|0,rnd(14,8)|0,rnd(11,6)|0); // B-09 : nombre/taille des enclos → data.biomes
   for(let k=0;k<14;k++)ridge(rnd(COLS),rnd(ROWS),rnd(6.28),rnd(22,8)|0,1+(RNG.sim()<.35?1:0)); // B-09 : crêtes → data.biomes
@@ -493,18 +498,18 @@ function startRun(diffId,opts){
   run={night:1,diff,seed,mods:M.defaultMods(),taken:[],score:0,active:true,win:false,killsTotal:0};
   run.mods.income+=diff.income;
   gen();sap=D.economy.sapStart+(M.isUnlocked('contremaitre')?D.economy.contremaitreBonus:0);lives=D.startLives+diff.lives;kills=0;dmgNums=[];lureUsed=false;paused=false;dead=false;won=false;igniting=false;igniteT=0;invuln=0;shake=0;note="";noteT=0;
-  towers=[];shots=[];parts=[];smoke=[];ab={dash:0};mmT=0;simAcc=0;tnow=0;last=0; // réinit horloge+accumulateur : parties indépendantes et reproductibles dans un même processus (B-12). tnow repart de 0 pour que la précision de dt ne dérive pas ; last suit pour éviter toute discontinuité. B-01b remplacera dt par un pas fixe.
+  towers=[];shots=[];parts=[];smoke=[];ab={dash:0};mmT=0;tick=0;acc=0; // pas fixe (ADR-002) : tick et accumulateur remis à 0 → une partie ne dépend jamais de la précédente.
   Object.assign(mouse,{x:VW/2,y:VH/2,wx:0,wy:0,down:false,rclick:false,over:false,sx:-1,sy:-1,gp:false,gpMove:null}); // réinit souris : pas d'état de construction qui fuit d'une partie à l'autre
   CF.ui&&CF.ui.setLives(lives);
   startNight();
 }
 function startNight(){
   const n=run.night,d=run.diff;
-  hunters=[];rq=[];lures=[];teles=[];spawns=0;clock=0;running=true;flowT=0;
+  hunters=[];rq=[];lures=[];teles=[];spawns=0;nightTick=0;clock=0;running=true;flowT=0;
   if(run.mods.lureRecharge)lureUsed=false;
-  const nd=D.nights[n]||D.nights[NIGHTS];run.maxH=nd.maxH+d.extra;run.spawnEvery=nd.spawnEvery;spawnT=nd.firstDelay;run.baseLevel=nd.baseLevel;
+  const nd=D.nights[n]||D.nights[NIGHTS];run.maxH=nd.maxH+d.extra;run.spawnEvery=secToTick(nd.spawnEvery);spawnT=secToTick(nd.firstDelay);run.baseLevel=nd.baseLevel;
   for(let k=0;k<nd.initial;k++)spawnHunter(run.baseLevel);
-  phase=`Nuit ${n}`;note=`Nuit ${n} — ${n===1?"la meute arrive":n===NIGHTS?"la derniere nuit":"la meute revient plus forte"}`;noteT=2.6;
+  phase=`Nuit ${n}`;note=`Nuit ${n} — ${n===1?"la meute arrive":n===NIGHTS?"la derniere nuit":"la meute revient plus forte"}`;noteT=secToTick(2.6);
   CF.ui&&CF.ui.onNight(n);audio.night();
 }
 // Applique une amélioration déclarative {stat, op, value, min?, target?} à mods (ou aux vies).
@@ -527,7 +532,7 @@ function finishRun(){
 }
 function spawnHunter(level){level=level||0;let bx=0,by=0,bd=-1;
   for(let t=0;t<120;t++){const x=rnd(COLS-4,3)|0,y=rnd(ROWS-4,3)|0;if(!passable(I(x,y)))continue;const d=(x*CELL-player.x)**2+(y*CELL-player.y)**2;if(d>bd){bd=d;bx=x;by=y;}}
-  const E=D.enemy,mh=E.hp+level*E.hpPerLevel;hunters.push({x:bx*CELL+CELL/2,y:by*CELL+CELL/2,vx:0,vy:0,r:CELL*(E.radius+level*E.radiusPerLevel),anim:rndF(6.28),spawn:E.spawnGrace,level,grow:E.growEvery,pulse:0,fireCd:E.fire.initCd,blocked:0,stuck:0,hp:mh,maxHp:mh,slow:0});spawns++;shake=4;}
+  const E=D.enemy,mh=E.hp+level*E.hpPerLevel;hunters.push({x:bx*CELL+CELL/2,y:by*CELL+CELL/2,vx:0,vy:0,r:CELL*(E.radius+level*E.radiusPerLevel),anim:rndF(6.28),spawn:secToTick(E.spawnGrace),level,grow:secToTick(E.growEvery),pulse:0,fireCd:secToTick(E.fire.initCd),blocked:0,stuck:0,hp:mh,maxHp:mh,slow:0});spawns++;shake=4;}
 
 /* ---------- audio ---------- */
 const audio=(()=>{let ac,mas,crk,rum,rumG,nb,rd=false,st=0;
@@ -575,20 +580,20 @@ function lineCells(){if(!mouse.over&&!mouse.gp)return[];const ex=CX(mouse.wx),ey
   if(shiftK&&(sx!==ex||sy!==ey)){const x0=Math.min(sx,ex),x1=Math.max(sx,ex),y0=Math.min(sy,ey),y1=Math.max(sy,ey);for(let x=x0;x<=x1;x++){out.push([x,y0]);if(y1!==y0)out.push([x,y1]);}for(let y=y0+1;y<y1;y++){out.push([x0,y]);if(x1!==x0)out.push([x1,y]);}return out;}
   if(Math.abs(ex-sx)>=Math.abs(ey-sy)){const d=Math.sign(ex-sx)||1;for(let x=sx;d>0?x<=ex:x>=ex;x+=d)out.push([x,sy]);}else{const d=Math.sign(ey-sy)||1;for(let y=sy;d>0?y<=ey:y>=ey;y+=d)out.push([sx,y]);}return out;}
 function placeWall(cx,cy,k){const v=canBuild(cx,cy);if(!v||v===3||sap<wallCost())return false;const i=I(cx,cy);
-  if(v===1){state[i]=WALL;wallHP[i]=D.build.wallHPMax;placedAt[i]=tnow;audio.wallN(k||0);}else{wallHP[i]=D.build.wallHPMax;audio.repair();}
-  sap-=wallCost();flowT=Math.min(flowT,D.sim.flowQuick);for(let j=0;j<3;j++)parts.push({x:cx*CELL+7,y:cy*CELL+9,vx:rndF(40,-40),vy:rndF(-10,-60),life:.4,age:0,c:'dust',s:rndF(3,1.5)});return true;}
+  if(v===1){state[i]=WALL;wallHP[i]=D.build.wallHPMax;placedAt[i]=tick;audio.wallN(k||0);}else{wallHP[i]=D.build.wallHPMax;audio.repair();}
+  sap-=wallCost();flowT=Math.min(flowT,secToTick(D.sim.flowQuick));for(let j=0;j<3;j++)parts.push({x:cx*CELL+7,y:cy*CELL+9,vx:rndF(40,-40),vy:rndF(-10,-60),life:.4,age:0,c:'dust',s:rndF(3,1.5)});return true;}
 function commitLine(){if(!running){mouse.sx=-1;return;}const cells=lineCells();let k=0;for(const[x,y]of cells){if(placeWall(x,y,k))k++;}mouse.sx=-1;mouse.sy=-1;}
 function demolish(){if(!running)return;const cx=CX(mouse.wx),cy=CY(mouse.wy);if(!inRange(cx,cy))return;const i=I(cx,cy),st=state[i];
   if(st===WALL){state[i]=GROUND;sap=Math.min(D.economy.sapCap,sap+D.economy.wallRefund);}else if(st===TOWER){state[i]=GROUND;sap=Math.min(D.economy.sapCap,sap+D.economy.towerRefund);}else return;
   flowT=0;audio.crack();for(let j=0;j<8;j++)parts.push({x:cx*CELL+7,y:cy*CELL+7,vx:rndF(60,-60),vy:rndF(-20,-90),life:.5,age:0,c:'dust',s:rndF(3,1.5)});}
 function useTower(){if(!running)return;const cx=CX(mouse.wx),cy=CY(mouse.wy),v=canBuild(cx,cy),i=I(cx,cy);
   if(v===3){if(sap<D.economy.towerRepairCost)return;wallHP[i]=D.tower.hpMax;sap-=D.economy.towerRepairCost;audio.repair();return;}
-  if(v!==1||towers.length>=run.mods.towerCap||sap<TOWER_COST){if(towers.length>=run.mods.towerCap){note=`${run.mods.towerCap} tourelles maximum`;noteT=1.2;}return;}
-  state[i]=TOWER;wallHP[i]=D.tower.hpMax;placedAt[i]=tnow;towers.push({i,cd:D.tower.firstCd,ang:-Math.PI/2,flash:0});sap-=TOWER_COST;audio.tower();flowT=Math.min(flowT,D.sim.flowQuick);
+  if(v!==1||towers.length>=run.mods.towerCap||sap<TOWER_COST){if(towers.length>=run.mods.towerCap){note=`${run.mods.towerCap} tourelles maximum`;noteT=secToTick(1.2);}return;}
+  state[i]=TOWER;wallHP[i]=D.tower.hpMax;placedAt[i]=tick;towers.push({i,cd:secToTick(D.tower.firstCd),ang:-Math.PI/2,flash:0});sap-=TOWER_COST;audio.tower();flowT=Math.min(flowT,secToTick(D.sim.flowQuick));
   for(let j=0;j<10;j++)parts.push({x:cx*CELL+7,y:cy*CELL+7,vx:rndF(60,-60),vy:rndF(-20,-90),life:.5,age:0,c:'sap',s:rndF(3,1.5)});}
-function useDash(){if(!running||ab.dash>0)return;ab.dash=run.mods.dashCd;const d=player.dir;player.vx+=d.x*D.player.dashImpulse;player.vy+=d.y*D.player.dashImpulse;player.dashT=D.player.dashDur;player.sq=.7;audio.dash();
+function useDash(){if(!running||ab.dash>0)return;ab.dash=secToTick(run.mods.dashCd);const d=player.dir;player.vx+=d.x*D.player.dashImpulse;player.vy+=d.y*D.player.dashImpulse;player.dashT=secToTick(D.player.dashDur);player.sq=.7;audio.dash();
   for(let i=0;i<10;i++)parts.push({x:player.x,y:player.y,vx:-d.x*rndF(120,40)+rndF(40,-40),vy:-d.y*rndF(120,40)+rndF(40,-40),life:.4,age:0,c:'lueur',s:rndF(3,1.5)});}
-function useLure(){if(!running||lureUsed)return;lureUsed=true;lures.push({x:player.x,y:player.y,life:D.lure.life,ph:0});audio.lure();flowT=0;note="Leurre lance — les Cendres se detournent";noteT=1.8;
+function useLure(){if(!running||lureUsed)return;lureUsed=true;lures.push({x:player.x,y:player.y,life:secToTick(D.lure.life),ph:0});audio.lure();flowT=0;note="Leurre lance — les Cendres se detournent";noteT=secToTick(1.8);
   for(let i=0;i<16;i++)parts.push({x:player.x,y:player.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.6,age:0,c:'lure',s:rndF(3,1.5)});}
 
 /* ---------- pathfinding ---------- */
@@ -602,16 +607,15 @@ let sealed=false,sq2,sseen;
 function checkSealed(){const n=COLS*ROWS;if(!sq2){sq2=new Int32Array(n);sseen=new Uint8Array(n);}sseen.fill(0);
   const hc=new Set(hunters.map(h=>I(CX(h.x),CY(h.y))));let head=0,tail=0;const st=I(CX(player.x),CY(player.y));sseen[st]=1;sq2[tail++]=st;let reach=false;
   while(head<tail&&!reach){const c=sq2[head++];if(hc.has(c)){reach=true;break;}const cx=c%COLS,cy=(c/COLS)|0;for(const[ox,oy]of NB4){const nx=cx+ox,ny=cy+oy;if(!inb(nx,ny))continue;const ni=I(nx,ny);if(sseen[ni])continue;const s2=state[ni];if(s2===WALL||s2===STONE||s2===TOWER)continue;sseen[ni]=1;sq2[tail++]=ni;}}
-  const now=hunters.length>0&&!reach;if(now&&!sealed){audio.seal();note="Enclos scelle !";noteT=1.6;}else if(!now&&sealed){audio.alarm();note="Breche !";noteT=1.6;shake=Math.max(shake,3);}
+  const now=hunters.length>0&&!reach;if(now&&!sealed){audio.seal();note="Enclos scelle !";noteT=secToTick(1.6);}else if(!now&&sealed){audio.alarm();note="Breche !";noteT=secToTick(1.6);shake=Math.max(shake,3);}
   sealed=now;document.getElementById('seal').classList.toggle('on',sealed);}
 
-/* ---------- feu localisé ---------- */
-let simAcc=0;const SIM=D.sim.tick;
+/* ---------- feu localisé (sous-cadence entière : appelé à tick % FIRE_EVERY, ADR-002 §4) ---------- */
 function stepSim(){for(let i=0;i<state.length;i++){const s=state[i];
-  if(s===BURNING){burn[i]+=SIM/D.sim.burnTime;if(burn[i]>=1){state[i]=BURNT;dry[i]=D.sim.dryTime;stampScorch(i);}
+  if(s===BURNING){if(++burn[i]>=BURN_STEPS){state[i]=BURNT;dry[i]=DRY_STEPS;stampScorch(i);}
     if(!reduce()&&RNG.fx()<.06&&smoke.length<80)smoke.push({x:(i%COLS)*CELL+rndF(CELL),y:((i/COLS)|0)*CELL,vy:rndF(-14,-28),vx:rndF(6,-6),life:rndF(2,1.2),age:0,r:rndF(18,9)});
     if(!reduce()&&RNG.fx()<.08&&parts.length<220)parts.push({x:(i%COLS)*CELL+rndF(CELL),y:((i/COLS)|0)*CELL+rndF(CELL),vx:rndF(14,-14),vy:rndF(-20,-55),life:rndF(1,.5),age:0,c:'ember',s:rndF(2.4,1)});}
-  else if(s===WET||s===BURNT){dry[i]-=SIM;if(dry[i]<=0)state[i]=GROUND;}}}
+  else if(s===WET||s===BURNT){if(--dry[i]<=0)state[i]=GROUND;}}}
 function ignitePatch(te){const cx=CX(te.x),cy=CY(te.y),R=Math.ceil(te.r);let any=false;
   for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++){if(x*x+y*y>te.r*te.r)continue;const nx=cx+x,ny=cy+y;if(!inb(nx,ny))continue;const i=I(nx,ny),s=state[i];
     if(s===GROUND||s===BURNT||s===WALL||s===TOWER){if(s===WALL||s===TOWER){stampScorch(i);flowT=0;}state[i]=BURNING;burn[i]=0;any=true;}}
@@ -621,15 +625,15 @@ function ignitePatch(te){const cx=CX(te.x),cy=CY(te.y),R=Math.ceil(te.r);let any
 function relocate(h){const cx=CX(h.x),cy=CY(h.y),RR=D.enemy.relocateRadius;
   for(let r=RR.min;r<RR.max;r++)for(let k=0;k<24;k++){const a=rnd(6.28),nx=Math.round(cx+Math.cos(a)*r),ny=Math.round(cy+Math.sin(a)*r);
     if(!inb(nx,ny)||!moveOK(state[I(nx,ny)])||flow[I(nx,ny)]<0)continue;if(Math.hypot(nx*CELL-player.x,ny*CELL-player.y)<CELL*D.enemy.relocateMinDist)continue;
-    h.x=nx*CELL+CELL/2;h.y=ny*CELL+CELL/2;h.vx=h.vy=0;h.stuck=0;h.spawn=D.enemy.relocateGrace;for(let j=0;j<14;j++)parts.push({x:h.x,y:h.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.5,age:0,c:'ember',s:rndF(3,1.5)});return;}
+    h.x=nx*CELL+CELL/2;h.y=ny*CELL+CELL/2;h.vx=h.vy=0;h.stuck=0;h.spawn=secToTick(D.enemy.relocateGrace);for(let j=0;j<14;j++)parts.push({x:h.x,y:h.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.5,age:0,c:'ember',s:rndF(3,1.5)});return;}
   h.stuck=0;}
 function damageHunter(h,dmg,slowT){h.hp-=dmg;dmgNums.push({x:h.x+rndF(6,-6),y:h.y-h.r*2,v:Math.round(dmg),age:0});h.slow=Math.max(h.slow,slowT||0);h.pulse=Math.max(h.pulse,.15);
-  if(h.hp<=0){const k=hunters.indexOf(h);if(k>=0)hunters.splice(k,1);kills++;const bounty=D.economy.bounty.base+h.level*D.economy.bounty.perLevel;sap=Math.min(D.economy.sapCap,sap+bounty);audio.kill();note=`Cendre eteinte ! +${bounty} Seve`;noteT=1.6;shake=Math.max(shake,4);
-    for(let i=0;i<28;i++)parts.push({x:h.x,y:h.y,vx:rndF(160,-160),vy:rndF(60,-200),life:rndF(1,.4),age:0,c:'ember',s:rndF(3.5,1.5)});rq.push({t:D.enemy.respawnDelay,level:Math.max(run.baseLevel,h.level-D.enemy.respawnDrop)});flowT=0;}}
-function updateHunters(dt){const d=run.diff,E=D.enemy,F=E.fire,wallMod=run.mods.wallHP;
+  if(h.hp<=0){const k=hunters.indexOf(h);if(k>=0)hunters.splice(k,1);kills++;const bounty=D.economy.bounty.base+h.level*D.economy.bounty.perLevel;sap=Math.min(D.economy.sapCap,sap+bounty);audio.kill();note=`Cendre eteinte ! +${bounty} Seve`;noteT=secToTick(1.6);shake=Math.max(shake,4);
+    for(let i=0;i<28;i++)parts.push({x:h.x,y:h.y,vx:rndF(160,-160),vy:rndF(60,-200),life:rndF(1,.4),age:0,c:'ember',s:rndF(3.5,1.5)});rq.push({t:secToTick(D.enemy.respawnDelay),level:Math.max(run.baseLevel,h.level-D.enemy.respawnDrop)});flowT=0;}}
+function updateHunters(){const d=run.diff,E=D.enemy,F=E.fire,wallMod=run.mods.wallHP;
   for(const h of hunters){
-    h.spawn=Math.max(0,h.spawn-dt);h.anim+=dt*8;h.pulse=Math.max(0,h.pulse-dt);h.fireCd=Math.max(0,h.fireCd-dt);h.slow=Math.max(0,h.slow-dt);
-    h.grow-=dt;if(h.grow<=0){h.grow=E.growEvery;if(h.level<LEVELCAP){h.level++;h.r=CELL*(E.radius+h.level*E.radiusPerLevel);h.maxHp=E.hp+h.level*E.hpPerLevel;h.hp=Math.min(h.maxHp,h.hp+E.growHeal);h.pulse=.8;audio.grow();note="Une Cendre grandit !";noteT=1.6;}}
+    h.spawn=Math.max(0,h.spawn-1);h.anim+=STEP*8;h.pulse=Math.max(0,h.pulse-STEP);h.fireCd=Math.max(0,h.fireCd-1);h.slow=Math.max(0,h.slow-1);
+    h.grow--;if(h.grow<=0){h.grow=secToTick(E.growEvery);if(h.level<LEVELCAP){h.level++;h.r=CELL*(E.radius+h.level*E.radiusPerLevel);h.maxHp=E.hp+h.level*E.hpPerLevel;h.hp=Math.min(h.maxHp,h.hp+E.growHeal);h.pulse=.8;audio.grow();note="Une Cendre grandit !";noteT=secToTick(1.6);}}
     const cx=CX(h.x),cy=CY(h.y),ci=I(cx,cy),cd=flow[ci],tgt=lures.length?lures[0]:player;
     let bst=null,bv=Infinity,bstWall=-1;
     for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oy)continue;const nx=cx+ox,ny=cy+oy;if(!inb(nx,ny))continue;const ni=I(nx,ny),st=state[ni];if(st===STONE)continue;const f=flow[ni];if(f<0)continue;
@@ -637,74 +641,76 @@ function updateHunters(dt){const d=run.diff,E=D.enemy,F=E.fire,wallMod=run.mods.
       if(f<bv){bv=f;bst=[nx,ny];bstWall=(st===WALL||st===TOWER)?ni:-1;}}
     const straight=Math.hypot(tgt.x-h.x,tgt.y-h.y)/CELL;let chewing=false,tx=tgt.x,ty=tgt.y;
     if(cd>=0&&bst&&bv<cd){tx=bst[0]*CELL+CELL/2;ty=bst[1]*CELL+CELL/2;
-      if(bstWall>=0){chewing=true;wallHP[bstWall]-=dt*(E.chew+h.level*E.chewPerLevel)*d.chew/wallMod;if(!reduce()&&RNG.fx()<.4)parts.push({x:(bstWall%COLS)*CELL+7,y:((bstWall/COLS)|0)*CELL+7,vx:rndF(40,-40),vy:rndF(-20,-70),life:.4,age:0,c:'dust',s:rndF(3,1.5)});
-        if(wallHP[bstWall]<=0){state[bstWall]=BURNT;dry[bstWall]=D.sim.dryTime;stampScorch(bstWall);flowT=0;audio.crack();shake=Math.max(shake,2);}}}
-    h.blocked=chewing?h.blocked+dt:0;
-    if(chewing&&h.level>=F.chewLevel&&h.fireCd<=0&&h.blocked>F.blockedTime&&straight<F.chewRange){h.fireCd=Math.max(F.minCd,F.cdBase-h.level*F.cdPerLevel);const wx=(bstWall%COLS)*CELL+CELL/2,wy=((bstWall/COLS)|0)*CELL+CELL/2;const onP=straight<F.onPlayerRange;teles.push({x:onP?tgt.x:wx,y:onP?tgt.y:wy,r:F.teleChewR,t:F.teleTime,tot:F.teleTime});audio.tele();}
-    else if(!chewing&&h.level>=F.wanderLevel&&h.fireCd<=0&&straight<F.wanderRange&&RNG.sim()<dt*F.wanderChance){h.fireCd=F.wanderCd;teles.push({x:tgt.x,y:tgt.y,r:F.teleWanderR,t:F.teleTime,tot:F.teleTime});audio.tele();}
+      if(bstWall>=0){chewing=true;wallHP[bstWall]-=STEP*(E.chew+h.level*E.chewPerLevel)*d.chew/wallMod;if(!reduce()&&RNG.fx()<.4)parts.push({x:(bstWall%COLS)*CELL+7,y:((bstWall/COLS)|0)*CELL+7,vx:rndF(40,-40),vy:rndF(-20,-70),life:.4,age:0,c:'dust',s:rndF(3,1.5)});
+        if(wallHP[bstWall]<=0){state[bstWall]=BURNT;dry[bstWall]=DRY_STEPS;stampScorch(bstWall);flowT=0;audio.crack();shake=Math.max(shake,2);}}}
+    h.blocked=chewing?h.blocked+1:0;
+    if(chewing&&h.level>=F.chewLevel&&h.fireCd<=0&&h.blocked>secToTick(F.blockedTime)&&straight<F.chewRange){h.fireCd=secToTick(Math.max(F.minCd,F.cdBase-h.level*F.cdPerLevel));const wx=(bstWall%COLS)*CELL+CELL/2,wy=((bstWall/COLS)|0)*CELL+CELL/2;const onP=straight<F.onPlayerRange;teles.push({x:onP?tgt.x:wx,y:onP?tgt.y:wy,r:F.teleChewR,t:secToTick(F.teleTime),tot:secToTick(F.teleTime)});audio.tele();}
+    else if(!chewing&&h.level>=F.wanderLevel&&h.fireCd<=0&&straight<F.wanderRange&&RNG.sim()<STEP*F.wanderChance){h.fireCd=secToTick(F.wanderCd);teles.push({x:tgt.x,y:tgt.y,r:F.teleWanderR,t:secToTick(F.teleTime),tot:secToTick(F.teleTime)});audio.tele();}
     const inWet=state[ci]===WET,inWater=state[ci]===WATER,spd=(E.speed+h.level*E.speedPerLevel+clock*E.speedClock)*d.spd*(h.spawn>0?E.spawnMove:1)*(inWet?E.wet:inWater?E.water:1)*(h.slow>0?E.slow:1);
     const ang=Math.atan2(ty-h.y,tx-h.x);h.vx=lerp(h.vx,Math.cos(ang)*spd,E.moveLerp);h.vy=lerp(h.vy,Math.sin(ang)*spd,E.moveLerp);
-    let nx2=h.x+h.vx*dt,ny2=h.y+h.vy*dt;if(!moveOK(state[I(CX(nx2),CY(h.y))]))nx2=h.x;if(!moveOK(state[I(CX(h.x),CY(ny2))]))ny2=h.y;
+    let nx2=h.x+h.vx*STEP,ny2=h.y+h.vy*STEP;if(!moveOK(state[I(CX(nx2),CY(h.y))]))nx2=h.x;if(!moveOK(state[I(CX(h.x),CY(ny2))]))ny2=h.y;
     const moved=Math.hypot(nx2-h.x,ny2-h.y);h.x=clamp(nx2,h.r,W-h.r);h.y=clamp(ny2,h.r,H-h.r);
-    h.stuck=(!chewing&&h.spawn<=0&&moved<E.stuckSpeed*dt)?h.stuck+dt:0;if(h.stuck>E.stuckTime)relocate(h);
+    h.stuck=(!chewing&&h.spawn<=0&&moved<E.stuckSpeed*STEP)?h.stuck+1:0;if(h.stuck>secToTick(E.stuckTime))relocate(h);
     if((inWet||inWater)&&!reduce()&&RNG.fx()<.5)parts.push({x:h.x+rndF(8,-8),y:h.y-4,vx:rndF(10,-10),vy:rndF(-30,-60),life:.5,age:0,c:'steam',s:rndF(3,2)});
     if(!reduce()&&RNG.fx()<.3&&parts.length<220)parts.push({x:h.x+rndF(8,-8),y:h.y+rndF(8,-8),vx:rndF(20,-20),vy:rndF(-10,-40),life:rndF(.7,.3),age:0,c:'ember',s:rndF(2.4,1)});
     if(!igniting&&invuln<=0&&Math.hypot(h.x-player.x,h.y-player.y)<h.r+player.r*E.catchReach)caught();
   }}
-function caught(){if(invuln>0||igniting)return;igniting=true;igniteT=D.player.igniteTime;shake=9;audio.lose();for(let i=0;i<22;i++)parts.push({x:player.x,y:player.y,vx:rndF(120,-120),vy:rndF(20,-160),life:rndF(.9,.4),age:0,c:'ember',s:rndF(3.5,1.5)});}
+function caught(){if(invuln>0||igniting)return;igniting=true;igniteT=secToTick(D.player.igniteTime);shake=9;audio.lose();for(let i=0;i<22;i++)parts.push({x:player.x,y:player.y,vx:rndF(120,-120),vy:rndF(20,-160),life:rndF(.9,.4),age:0,c:'ember',s:rndF(3.5,1.5)});}
 function respawnPlayer(){const ox=player.x,oy=player.y;let bx=-1,by=-1,bd=-1;
   for(let t=0;t<200;t++){const x=rnd(COLS-3,2)|0,y=rnd(ROWS-3,2)|0;if(state[I(x,y)]===STONE||state[I(x,y)]===WATER)continue;let dm=1e9;for(const h of hunters)dm=Math.min(dm,Math.hypot(h.x-x*CELL,h.y-y*CELL));if(dm<CELL*D.player.respawnMinDist)continue;
     const sc=dm-Math.hypot(x*CELL-ox,y*CELL-oy)*.35;if(sc>bd){bd=sc;bx=x;by=y;}}
-  if(bx>=0){player.x=bx*CELL+CELL/2;player.y=by*CELL+CELL/2;}player.vx=player.vy=0;invuln=D.player.respawnInvuln;audio.lifeLost();note=`Lueur perdue — il t'en reste ${lives}`;noteT=2;
+  if(bx>=0){player.x=bx*CELL+CELL/2;player.y=by*CELL+CELL/2;}player.vx=player.vy=0;invuln=secToTick(D.player.respawnInvuln);audio.lifeLost();note=`Lueur perdue — il t'en reste ${lives}`;noteT=secToTick(2);
   for(let i=0;i<16;i++)parts.push({x:player.x,y:player.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.6,age:0,c:'lueur',s:rndF(3,1.5)});CF.ui.setLives(lives);}
 function threatDist(){let b=1e9;for(const h of hunters)b=Math.min(b,Math.hypot(h.x-player.x,h.y-player.y));for(const te of teles)b=Math.min(b,Math.hypot(te.x-player.x,te.y-player.y));const cx=CX(player.x),cy=CY(player.y);for(let y=-3;y<=3;y++)for(let x=-3;x<=3;x++)if(inb(cx+x,cy+y)&&state[I(cx+x,cy+y)]===BURNING)b=Math.min(b,Math.hypot(x,y)*CELL);return b;}
-function updateDefenses(dt){const T=D.tower,range=CELL*T.range*run.mods.towerRange;
-  for(let k=towers.length-1;k>=0;k--){const tw=towers[k];if(state[tw.i]!==TOWER){towers.splice(k,1);continue;}tw.cd-=dt;tw.flash=Math.max(0,tw.flash-dt);
+function updateDefenses(){const T=D.tower,range=CELL*T.range*run.mods.towerRange;
+  for(let k=towers.length-1;k>=0;k--){const tw=towers[k];if(state[tw.i]!==TOWER){towers.splice(k,1);continue;}tw.cd--;tw.flash=Math.max(0,tw.flash-STEP);
     const tx=(tw.i%COLS)*CELL+CELL/2,ty=((tw.i/COLS)|0)*CELL+CELL/2;let bh=null,bd=range;for(const h of hunters){const d=Math.hypot(h.x-tx,h.y-ty);if(d<bd){bd=d;bh=h;}}
-    if(bh){const ta=Math.atan2(bh.y-ty,bh.x-tx);let da=ta-tw.ang;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;tw.ang+=da*Math.min(1,dt*T.turn);
-      if(tw.cd<=0){tw.cd=T.rate*run.mods.towerRate;tw.flash=.12;shots.push({x:tx,y:ty-6,h:bh,sp:T.projSpeed});audio.shot();}}}
+    if(bh){const ta=Math.atan2(bh.y-ty,bh.x-tx);let da=ta-tw.ang;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;tw.ang+=da*Math.min(1,STEP*T.turn);
+      if(tw.cd<=0){tw.cd=secToTick(T.rate*run.mods.towerRate);tw.flash=.12;shots.push({x:tx,y:ty-6,h:bh,sp:T.projSpeed});audio.shot();}}}
   for(let k=shots.length-1;k>=0;k--){const sh=shots[k];if(hunters.indexOf(sh.h)<0){shots.splice(k,1);continue;}const dx=sh.h.x-sh.x,dy=sh.h.y-sh.y,d=Math.hypot(dx,dy);
-    if(d<T.hitRadius){damageHunter(sh.h,T.dmg*run.mods.towerDmg,T.hitSlow);audio.hit();for(let j=0;j<6;j++)parts.push({x:sh.h.x,y:sh.h.y,vx:rndF(60,-60),vy:rndF(-20,-80),life:.4,age:0,c:'steam',s:rndF(3,2)});shots.splice(k,1);continue;}
-    sh.x+=dx/d*sh.sp*dt;sh.y+=dy/d*sh.sp*dt;}}
+    if(d<T.hitRadius){damageHunter(sh.h,T.dmg*run.mods.towerDmg,secToTick(T.hitSlow));audio.hit();for(let j=0;j<6;j++)parts.push({x:sh.h.x,y:sh.h.y,vx:rndF(60,-60),vy:rndF(-20,-80),life:.4,age:0,c:'steam',s:rndF(3,2)});shots.splice(k,1);continue;}
+    sh.x+=dx/d*sh.sp*STEP;sh.y+=dy/d*sh.sp*STEP;}}
 
 /* ---------- update ---------- */
-function update(dt){
-  tnow+=dt;for(const k in ab)ab[k]=Math.max(0,ab[k]-dt);noteT=Math.max(0,noteT-dt);invuln=Math.max(0,invuln-dt);if(god)invuln=1;
+function update(){
+  tick++;nightTick++;for(const k in ab)ab[k]=Math.max(0,ab[k]-1);noteT=Math.max(0,noteT-1);invuln=Math.max(0,invuln-1);if(god)invuln=secToTick(1);
   let ix=0,iy=0;if(keys['z']||keys['w']||keys['arrowup'])iy--;if(keys['s']||keys['arrowdown'])iy++;if(keys['q']||keys['a']||keys['arrowleft'])ix--;if(keys['d']||keys['arrowright'])ix++;
   if(mouse.gpMove){ix+=mouse.gpMove.x;iy+=mouse.gpMove.y;}
   const l=Math.hypot(ix,iy);if(l>0){ix/=l;iy/=l;player.dir={x:ix,y:iy};player.face=ix<0?-1:ix>0?1:player.face;}
-  const acc=D.player.acc,fr=Math.pow(D.player.friction,dt);player.vx=(player.vx+ix*acc*dt)*fr;player.vy=(player.vy+iy*acc*dt)*fr;player.dashT=Math.max(0,player.dashT-dt);
+  const accel=D.player.acc;player.vx=(player.vx+ix*accel*STEP)*frictionPerTick;player.vy=(player.vy+iy*accel*STEP)*frictionPerTick;player.dashT=Math.max(0,player.dashT-1);
   const onWater=state[I(CX(player.x),CY(player.y))]===WATER,maxv=(D.player.maxSpeed+(player.dashT>0?D.player.dashBoost:0))*(onWater?D.player.water:1);
   const sp=Math.hypot(player.vx,player.vy);if(sp>maxv){player.vx*=maxv/sp;player.vy*=maxv/sp;}
-  let nx2=player.x+player.vx*dt,ny2=player.y+player.vy*dt;
+  let nx2=player.x+player.vx*STEP,ny2=player.y+player.vy*STEP;
   if(state[I(CX(nx2),CY(player.y))]===STONE){nx2=player.x;player.vx*=D.player.bounce;}if(state[I(CX(player.x),CY(ny2))]===STONE){ny2=player.y;player.vy*=D.player.bounce;}
   player.x=clamp(nx2,player.r,W-player.r);player.y=clamp(ny2,player.r,H-player.r);
   mouse.wx=mouse.x/ZOOM+cam.x;mouse.wy=mouse.y/ZOOM+cam.y;
   if(keys.dash)useDash();if(mouse.rclick){mouse.rclick=false;useTower();}if(keys.lure)useLure();
-  sap=Math.min(D.economy.sapCap,sap+run.mods.income*dt);
-  for(let k=dmgNums.length-1;k>=0;k--){const d=dmgNums[k];d.age+=dt;d.y-=22*dt;if(d.age>.8)dmgNums.splice(k,1);}
-  if(sp>30){player.step+=dt*sp*.05;if(Math.sin(player.step)>.9)audio.foot();}
-  player.sq=lerp(player.sq,1,Math.min(1,dt*12));player.velStretch=clamp(sp/D.player.maxSpeed,0,1);player.blink-=dt;if(player.blink<0)player.blink=rndF(4.5,2.2);
-  player.scare=lerp(player.scare,threatDist()<CELL*4.5?1:0,Math.min(1,dt*9));
-  for(let k=lures.length-1;k>=0;k--){const lu=lures[k];lu.life-=dt;lu.ph+=dt*4;if(lu.life<=0){lures.splice(k,1);flowT=0;}}
-  for(let k=teles.length-1;k>=0;k--){const te=teles[k];te.t-=dt;if(te.t<=0){ignitePatch(te);teles.splice(k,1);}}
-  clock=Math.min(1,clock+dt/NIGHT_LEN);
-  spawnT-=dt;if(spawnT<=0&&spawns<run.maxH){spawnT=run.spawnEvery;spawnHunter(run.baseLevel);audio.spawn();note=spawns>=run.maxH?"Encerclement !":"La meute grossit";noteT=1.8;}
-  for(let k=rq.length-1;k>=0;k--){rq[k].t-=dt;if(rq[k].t<=0){const lv=rq[k].level;rq.splice(k,1);spawns--;spawnHunter(lv);audio.spawn();note="Une Cendre renait...";noteT=1.5;}}
+  sap=Math.min(D.economy.sapCap,sap+run.mods.income*STEP);
+  for(let k=dmgNums.length-1;k>=0;k--){const d=dmgNums[k];d.age+=STEP;d.y-=22*STEP;if(d.age>.8)dmgNums.splice(k,1);}
+  if(sp>30){player.step+=STEP*sp*.05;if(Math.sin(player.step)>.9)audio.foot();}
+  player.sq=lerp(player.sq,1,Math.min(1,STEP*12));player.velStretch=clamp(sp/D.player.maxSpeed,0,1);player.blink-=STEP;if(player.blink<0)player.blink=rndF(4.5,2.2);
+  player.scare=lerp(player.scare,threatDist()<CELL*4.5?1:0,Math.min(1,STEP*9));
+  for(let k=lures.length-1;k>=0;k--){const lu=lures[k];lu.life--;lu.ph+=STEP*4;if(lu.life<=0){lures.splice(k,1);flowT=0;}}
+  for(let k=teles.length-1;k>=0;k--){const te=teles[k];te.t--;if(te.t<=0){ignitePatch(te);teles.splice(k,1);}}
+  clock=Math.min(1,nightTick/NIGHT_TICKS);
+  spawnT--;if(spawnT<=0&&spawns<run.maxH){spawnT=run.spawnEvery;spawnHunter(run.baseLevel);audio.spawn();note=spawns>=run.maxH?"Encerclement !":"La meute grossit";noteT=secToTick(1.8);}
+  for(let k=rq.length-1;k>=0;k--){rq[k].t--;if(rq[k].t<=0){const lv=rq[k].level;rq.splice(k,1);spawns--;spawnHunter(lv);audio.spawn();note="Une Cendre renait...";noteT=secToTick(1.5);}}
   phase=`Nuit ${run.night} — ${clock<.33?"la chasse":clock<.66?"le siege":"l'encerclement"}`;
-  flowT-=dt;if(flowT<=0){computeFlow();checkSealed();flowT=D.sim.flowInterval;}
-  updateHunters(dt);updateDefenses(dt);
-  simAcc+=dt;while(simAcc>=SIM){stepSim();simAcc-=SIM;}
+  flowT--;if(flowT<=0){computeFlow();checkSealed();flowT=secToTick(D.sim.flowInterval);}
+  updateHunters();updateDefenses();
+  if(tick%FIRE_EVERY===0)stepSim();
   let nb=0;for(let i=0;i<state.length;i+=7)if(state[i]===BURNING)nb++;audio.fire(clamp(nb/40,0,1));audio.esc(clock);
   if(state[I(CX(player.x),CY(player.y))]===BURNING&&!dead&&!igniting&&invuln<=0)caught();
-  if(igniting){igniteT-=dt;if(igniteT<=0){igniting=false;if(lives>1){lives--;respawnPlayer();}else{lives=0;dead=true;CF.ui.setLives(0);run.killsTotal+=0;finishRun();return;}}}
+  if(igniting){igniteT--;if(igniteT<=0){igniting=false;if(lives>1){lives--;respawnPlayer();}else{lives=0;dead=true;CF.ui.setLives(0);run.killsTotal+=0;finishRun();return;}}}
   if(clock>=1&&running){run.killsTotal+=kills;kills=0;dawn();return;}
-  for(let k=parts.length-1;k>=0;k--){const p=parts[k];p.age+=dt;if(p.age>=p.life){parts.splice(k,1);continue;}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=(p.c==='sap'||p.c==='dust'?300:-14)*dt;}
-  for(let k=smoke.length-1;k>=0;k--){const s=smoke[k];s.age+=dt;if(s.age>=s.life){smoke.splice(k,1);continue;}s.x+=s.vx*dt;s.y+=s.vy*dt;s.vy-=4*dt;}
-  shake=Math.max(0,shake-dt*22);
-  const k2=1-Math.pow(.002,dt),lookX=(mouse.x-VW/2)/ZOOM*.18,lookY=(mouse.y-VH/2)/ZOOM*.18;
-  cam.x=lerp(cam.x,clamp(player.x-VWZ/2+lookX,0,W-VWZ),k2);cam.y=lerp(cam.y,clamp(player.y-VHZ/2+lookY,0,H-VHZ),k2);
-  mmT-=dt;if(mmT<=0){mmT=.25;buildMinimap();}
+  // Cosmétique (hors empreinte) : avance au pas fixe, déterministe sur le flux fx (ADR-002 §7).
+  for(let k=parts.length-1;k>=0;k--){const p=parts[k];p.age+=STEP;if(p.age>=p.life){parts.splice(k,1);continue;}p.x+=p.vx*STEP;p.y+=p.vy*STEP;p.vy+=(p.c==='sap'||p.c==='dust'?300:-14)*STEP;}
+  for(let k=smoke.length-1;k>=0;k--){const s=smoke[k];s.age+=STEP;if(s.age>=s.life){smoke.splice(k,1);continue;}s.x+=s.vx*STEP;s.y+=s.vy*STEP;s.vy-=4*STEP;}
+  shake=Math.max(0,shake-STEP*22);
+  // Caméra dans la simulation (pas fixe) : la construction lit mouse.wx=…+cam.x, elle doit être déterministe.
+  const lookX=(mouse.x-VW/2)/ZOOM*.18,lookY=(mouse.y-VH/2)/ZOOM*.18;
+  cam.x=lerp(cam.x,clamp(player.x-VWZ/2+lookX,0,W-VWZ),camK);cam.y=lerp(cam.y,clamp(player.y-VHZ/2+lookY,0,H-VHZ),camK);
+  mmT-=STEP;if(mmT<=0){mmT=.25;buildMinimap();}
 }
 
 /* ---------- rendu ---------- */
@@ -723,7 +729,7 @@ function drawCreature(e,t,menace){
   const P=menace?pal(p.level||0):null;const gs=r*(4+(p.scare||0)*1.5+(p.pulse||0)*3);ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.85;
   if(menace){const gg=ctx.createRadialGradient(0,0,0,0,0,gs/2);gg.addColorStop(0,rgba(P.glow,.9));gg.addColorStop(.4,rgba(P.glow,.4));gg.addColorStop(1,rgba(P.glow,0));ctx.fillStyle=gg;ctx.fillRect(-gs/2,-gs/2,gs,gs);}else ctx.drawImage(sprLueur,-gs/2,-gs/2,gs,gs);
   ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
-  const ig=(!menace&&igniting)?(1-igniteT/.55):0,face=p.face||(p.vx<0?-1:1),vs=p.velStretch||0,sq=p.sq||1;
+  const ig=(!menace&&igniting)?(1-igniteT/secToTick(D.player.igniteTime)):0,face=p.face||(p.vx<0?-1:1),vs=p.velStretch||0,sq=p.sq||1;
   const sx=lerp(1,1.12,vs)/lerp(1,1.16,1-sq),sy=lerp(1,.9,vs)*lerp(1,1.16,1-sq);
   ctx.save();ctx.scale(face*sx,sy);
   ctx.fillStyle=menace?'#5a1e12':(ig>.1?'#c0491f':'#e9d9bf');const fpp=Math.sin((p.step||p.anim)*2)*(menace?.6:vs)*4;
@@ -757,12 +763,12 @@ function draw(t){
   ctx.save();ctx.scale(ZOOM,ZOOM);ctx.translate(-ox,-oy);
   const x0=Math.max(0,(ox/CELL|0)-2),x1=Math.min(COLS-1,((ox+VWZ)/CELL|0)+2),y0=Math.max(0,(oy/CELL|0)-2),y1=Math.min(ROWS-1,((oy+VHZ)/CELL|0)+2);
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=I(x,y),s=state[i],px=x*CELL,py=y*CELL;
-    if(s===WALL){const hp=wallHP[i],R=inb(x+1,y)&&state[I(x+1,y)]===WALL,D=inb(x,y+1)&&state[I(x,y+1)]===WALL,age=tnow-placedAt[i],pop=age<.25?1-Math.pow(1-age/.25,2)*Math.cos(age*40)*.35:1;
+    if(s===WALL){const hp=wallHP[i],R=inb(x+1,y)&&state[I(x+1,y)]===WALL,D=inb(x,y+1)&&state[I(x,y+1)]===WALL,age=(tick-placedAt[i])*STEP,pop=age<.25?1-Math.pow(1-age/.25,2)*Math.cos(age*40)*.35:1;
       ctx.save();ctx.translate(px+CELL/2,py+CELL/2);ctx.scale(pop,pop);ctx.translate(-px-CELL/2,-py-CELL/2);
       ctx.fillStyle='rgba(0,0,0,.4)';rr(px+2,py+5,CELL-1+(R?2:0),CELL-1+(D?2:0),4);ctx.fill();ctx.fillStyle='#4e3624';rr(px+1,py+4,CELL-2+(R?2:0),CELL-4+(D?2:0),R||D?2:4);ctx.fill();
       ctx.fillStyle='#7a5738';rr(px+1,py+1,CELL-2+(R?2:0),CELL-5+(D?4:0),R||D?2:4);ctx.fill();ctx.fillStyle=`rgba(224,186,134,${.3+hp*.5})`;rr(px+3,py+2,CELL-6+(R?4:0),CELL*.3,2);ctx.fill();ctx.restore();
       if(hp<.6){ctx.strokeStyle='rgba(30,15,10,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+3,py+CELL-4);ctx.lineTo(px+CELL/2,py+5);ctx.lineTo(px+CELL-3,py+CELL-5);ctx.stroke();}}
-    else if(s===TOWER){const hp=wallHP[i]/2.2,cx2=px+CELL/2,cy2=py+CELL/2,tw=towers.find(q=>q.i===i),ang=tw?tw.ang:-Math.PI/2,age=tnow-placedAt[i],pop=age<.3?1-Math.pow(1-age/.3,2)*Math.cos(age*36)*.4:1;
+    else if(s===TOWER){const hp=wallHP[i]/2.2,cx2=px+CELL/2,cy2=py+CELL/2,tw=towers.find(q=>q.i===i),ang=tw?tw.ang:-Math.PI/2,age=(tick-placedAt[i])*STEP,pop=age<.3?1-Math.pow(1-age/.3,2)*Math.cos(age*36)*.4:1;
       ctx.save();ctx.translate(cx2,cy2);ctx.scale(pop,pop);ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.arc(1,5,CELL*.66,0,7);ctx.fill();
       ctx.fillStyle='#1e4f5b';ctx.beginPath();ctx.arc(0,2,CELL*.66,0,7);ctx.fill();ctx.fillStyle='#2b6f7c';ctx.beginPath();ctx.arc(0,-1,CELL*.56,0,7);ctx.fill();
       ctx.save();ctx.rotate(ang);ctx.fillStyle='#3c8fa0';rr(0,-3,CELL*.62,6,3);ctx.fill();ctx.fillStyle='#bff6ff';rr(CELL*.4,-1.5,CELL*.26,3,1.5);ctx.fill();if(tw&&tw.flash>0){ctx.fillStyle=`rgba(220,255,255,${tw.flash/.12})`;ctx.beginPath();ctx.arc(CELL*.7,0,4,0,7);ctx.fill();}ctx.restore();
@@ -804,23 +810,33 @@ function draw(t){
 function hud(){if(!run)return;const $=id=>document.getElementById(id);
   $('sapFill').style.width=(sap/1.2)+'%';$('clockFill').style.width=(clock*100)+'%';$('phase').textContent=noteT>0?note:phase;
   $('timer').textContent=running?`${Math.round((1-clock)*NIGHT_LEN)} s avant l'aube`:'';$('kills').textContent=`${run.killsTotal+kills} eteinte${run.killsTotal+kills>1?'s':''} · ${hunters.length} en chasse`;
-  const ab1=$('ab1'),co1=$('co1');co1.style.transform=`scaleY(${ab.dash>0?ab.dash/run.mods.dashCd:0})`;ab1.classList.toggle('rdy',ab.dash<=0);
+  const ab1=$('ab1'),co1=$('co1');co1.style.transform=`scaleY(${ab.dash>0?ab.dash/secToTick(run.mods.dashCd):0})`;ab1.classList.toggle('rdy',ab.dash<=0);
   const ab2=$('ab2');$('co2').style.transform=`scaleY(${lureUsed?1:0})`;ab2.classList.toggle('rdy',!lureUsed);$('lureLab').textContent=lureUsed?(run.mods.lureRecharge?'Leurre (nuit suiv.)':'Leurre utilise'):'Leurre 1x';
   const ab3=$('ab3'),okT=towers.length<run.mods.towerCap&&sap>=TOWER_COST;ab3.classList.toggle('rdy',okT);ab3.style.opacity=okT?1:.55;$('towerLab').textContent=`Tourelle ${towers.length}/${run.mods.towerCap}`;}
 
 /* ---------- boucle ---------- */
-let last=performance.now();
-function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;const t=now/1000;if(CF.input)CF.input.poll(dt);if(run&&running&&!paused)update(dt);if(run)draw(t);hud();requestAnimationFrame(frame);}
+let last=performance.now(),acc=0;
+// Accumulateur à pas fixe (ADR-002) : la simulation avance par pas de STEP entiers, indépendamment
+// du framerate. Entrées échantillonnées une fois par frame. Plafond 4 pas ; au-delà le retard est
+// jeté (le temps ralentit, pas de rafale). En pause/menu, rien ne s'accumule.
+function frame(now){const real=(now-last)/1000;last=now;const t=now/1000;
+  if(CF.input)CF.input.poll(real);
+  if(run&&running&&!paused){acc+=Math.min(real,STEP*4);let steps=0;while(acc>=STEP&&steps<4){update();acc-=STEP;steps++;}if(acc>=STEP)acc=0;}
+  else acc=0;
+  if(run)draw(t);hud();requestAnimationFrame(frame);}
+addEventListener('visibilitychange',()=>{last=performance.now();acc=0;}); // retour d'onglet : pas de rattrapage
 
 CF.game={startRun,commitLine,beginDrag,useTower,useDash,useLure,demolish,mouse,keys,audio,
   get running(){return running;},get paused(){return paused;},set paused(v){paused=v;},get run(){return run;},
   setShift(v){shiftK=v;},setCtrl(v){ctrlK=v;},abandon(){if(run&&run.active){run.active=false;running=false;}},
-  dev:{dawn(){clock=1;},god(v){god=!!v;},seed(n){RNG.seed(n);},applyUpgrade,
-    state(){return{night:run&&run.night,lives,sap,kills,hunters:hunters.length,towers:towers.length,running,clock};},
+  dev:{dawn(){nightTick=NIGHT_TICKS;},god(v){god=!!v;},seed(n){RNG.seed(n);},applyUpgrade,
+    state(){return{night:run&&run.night,lives,sap,kills,hunters:hunters.length,towers:towers.length,running,clock,tick};},
+    // Minuteries de simulation en ticks (tests de durée : une durée data.js en secondes doit durer secToTick(s) ticks).
+    timers(){return{tick,nightTick,dash:ab.dash,dashT:player.dashT,invuln,igniteT,lures:lures.map(l=>l.life),rclick:mouse.rclick};},secToTick,
     // Empreinte déterministe pour tools/baseline.json : seul le flux sim y entre (jamais fx).
     snapshot(){const R=v=>Math.round(v*1e4)/1e4;let walls=0,hash=2166136261;
       for(let i=0;i<state.length;i++){if(state[i]===WALL)walls++;hash=(Math.imul(hash^state[i],16777619))>>>0;}
-      return{seed:run&&run.seed,night:run&&run.night,clock:R(clock),lives,sap:R(sap),kills,
+      return{seed:run&&run.seed,tick,nightTick,night:run&&run.night,clock:R(clock),lives,sap:R(sap),kills,
         player:{x:R(player.x),y:R(player.y),vx:R(player.vx),vy:R(player.vy)},
         hunters:hunters.map(h=>({x:R(h.x),y:R(h.y),hp:R(h.hp),level:h.level,fireCd:R(h.fireCd)})),
         walls,towers:towers.length,stateHash:hash};}},
