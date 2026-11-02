@@ -223,6 +223,8 @@ const defSettings = () => ({ schema: SCHEMA, volume: 0.9, shake: 1, reduceMotion
 function load(key, def) { try { const raw = store.get(key); if (!raw) return def(); const o = JSON.parse(raw); if (o.schema !== SCHEMA) return Object.assign(def(), o, { schema: SCHEMA }); return Object.assign(def(), o); } catch(e) { return def(); } }
 const profile = load('cf_profile', defProfile);
 const settings = load('cf_settings', defSettings);
+// R-02 : dernier replay (clé séparée, réécrite à chaque partie terminée ; pas de schéma de profil touché)
+const lastReplay = { get: () => { try { return store.get('cf_replay'); } catch(e) { return null; } }, set: v => { try { store.set('cf_replay', v); } catch(e){} } };
 const save = () => { try { store.set('cf_profile', JSON.stringify(profile)); store.set('cf_settings', JSON.stringify(settings)); } catch(e){} };
 
 /* Défi du jour (W-05) — clé SÉPARÉE `cf_daily`, versionnée à part (DAILY_SCHEMA) : le profil (schema 1) ne change pas.
@@ -264,7 +266,7 @@ const TECH_META = {
   tourelle:  { name:'Tourelles', desc:'Dégâts des tourelles ×1,25.' },
   bottes:    { name:'Bottes',    desc:'Vitesse ×1,10.' },
   ruche:     { name:'Ruches',    desc:'Production des Ruches ×1,5.' },
-  veilleuse: { name:'Veilleuse', desc:'+1 tourelle maximum.' },
+  veilleuse: { name:'Longue-vue', desc:'Portée des tourelles ×1,1.' }, // V3-02 : id conservé
   macon:     { name:'Maçon',     desc:'Renforcer : −25 % de Sève.' },
 };
 /* Annonceur et phases — TEXTES seuls (K-01, ADR-004 §4). Durées et sons : CF.data.announcer. {x} = paramètre
@@ -281,7 +283,7 @@ const ANNOUNCER = {
   pack: 'La meute est là !', techBought: '{name} — palier {lvl}', techMax: '{name} : palier maximum', towerCap: '{cap} tourelles maximum', rucheCap: '{cap} ruches maximum', lure: 'Leurre lancé — les Cendres se détournent',
   sealed: 'Enclos scellé !', breach: 'Brèche !', kill: 'Cendre éteinte ! +{bounty} Sève', grow: 'Une Cendre grandit !',
   lifeLost: 'Lueur perdue — il t’en reste {lives}', packGrows: 'La meute grossit', encircle: 'Encerclement !', respawn: 'Une Cendre renaît…',
-  flair: 'La meute a flairé ta trace !', lost: 'La meute a perdu ta trace', wallLow: 'Un mur cède !', stoneWall: 'Mur de pierre', bastion: 'Bastion !', surge: 'La meute te revoit !', finale: 'La Grande Aube approche — tiens bon !',
+  flair: 'La meute a flairé ta trace !', lost: 'La meute a perdu ta trace', wallLow: 'Un mur cède !', swallowed: 'Engloutie ! Éteins la Cendre pour te libérer !', freed: 'Libérée !', stoneWall: 'Mur de pierre', towerUp: 'Tourelle niveau {n}', rucheUp: 'Ruche niveau {n}', bastion: 'Bastion !', surge: 'La meute te revoit !', finale: 'La Grande Aube approche — tiens bon !',
   itemBought: '{name} acheté', invFull: 'Sac plein ({n} objets)', mist: 'Rosée : la meute ne te voit plus', beacon: 'Lanterne posée',
   repaired: 'Résine : {n} ouvrages colmatés', snareSet: 'Ronce plantée', snared: 'Une Cendre est prise dans les ronces !',
 };
@@ -300,7 +302,7 @@ const UNLOCKS = [
 ];
 
 CF.meta = {
-  profile, settings, UNLOCKS, defaultMods, save, ANNOUNCER, PHASES, TECH_META, ITEM_META, daily,
+  profile, settings, UNLOCKS, defaultMods, save, ANNOUNCER, PHASES, TECH_META, ITEM_META, daily, lastReplay,
   say: (key, p) => fill(ANNOUNCER[key], p), phase: (key, p) => fill(PHASES[key], p),
   storageKind: store.kind,                   // 'bridge' (Electron) | 'local' (localStorage) | 'memory' (non persistant)
   get DIFF() { return mergedDiff(); },       // vue fusionnée libellés + CF.data.difficulty
@@ -337,21 +339,21 @@ CF.meta = {
 const CF = window.CF = window.CF || {};
 
 CF.data = {
-  version: 14,
+  version: 17,
 
   world: {
     NIGHTS: 5,        // nombre de nuits jusqu'à la victoire
-    NIGHT_LEN: 150,   // s : durée d'une nuit (horloge 0→1)
-    LEVELCAP: 8,      // niveau max d'une Cendre
+    NIGHT_LEN: 180,   // s : durée d'une nuit (horloge 0→1) — V3-02 : 150 → 180, la base a le temps de grandir
+    LEVELCAP: 10,     // niveau max d'une Cendre — V3-02 : 8 → 10, escalade jusqu'à la dernière nuit (Brandon ardent)
     RANGE: 7,         // cases : portée de construction autour du joueur
   },
 
   economy: {
     sapStart: 90,          // Sève au début d'une partie
-    sapCap: 250,           // plafond de Sève — 250 depuis K-03b : les paliers de tech à 180 et 200 doivent être achetables
+    sapCap: 400,           // plafond de Sève — K-03b : 250 ; V3-02 : 400 (paliers 3 des ouvrages, Aîné)
     income: 1.0,           // Sève/s de base (avant modificateur de difficulté) — K-02 : l'économie, ce sont les Ruches
     rucheCost: 40,         // Sève par Ruche (K-02)
-    rucheCap: 4,           // Ruches maximum
+    rucheStep: 15,         // V3-02 : plus de plafond ; chaque Ruche posée renchérit la suivante de 15 Sève
     rucheIncome: 1.0,      // Sève/s produite par Ruche (× mods.rucheMul, tech K-03 ; Q2 : 1,5 → 1,0)
     rucheRefund: 20,       // Sève rendue en démolissant une Ruche
     wallCost: 2,           // BOIS par rempart (K-06 ; Q1 : 3 → 2, le labyrinthe doit être finançable)
@@ -400,6 +402,7 @@ CF.data = {
     wallRepairBelow: 0.98, // un rempart sous ce PV est réparable
     towerRepairBelow: 2.1, // une tourelle sous ce PV est réparable
     hunterOnRadius: 0.9,   // ×CELL : une case occupée par une Cendre est inconstructible
+    rucheUp: [ { cost: 50, income: 1.7, hp: 2.5 }, { cost: 90, income: 2.5, hp: 3.5 } ], // V3-02 : Ruche niveaux 2 et 3 (outil G)
     reinforce: { mul: [1, 3, 6], cost: [15, 35] }, // Q2 : palissade → pierre (×3 PV, 15 Sève) → bastion (×6 PV, 35 Sève), outil G
   },
 
@@ -418,7 +421,7 @@ CF.data = {
     chewPerLevel: 0.04, // mastication en plus par niveau
     radius: 0.55,       // ×CELL : rayon de base
     radiusPerLevel: 0.05,
-    growEvery: 15,      // s : une Cendre monte d'un niveau à cet intervalle
+    growEvery: 18,      // s : une Cendre monte d'un niveau à cet intervalle (V3-01 : 12 ; V3-02 : 18, plus de plateau)
     growHeal: 25,       // PV rendus lors d'une montée de niveau
     spawnGrace: 0.8,    // s : lenteur (×spawnMove) juste après apparition
     spawnMove: 0.3,     // multiplicateur de vitesse pendant la grâce d'apparition
@@ -480,11 +483,13 @@ CF.data = {
   // firstDelay=(n===1?40:18), baseLevel=min(LEVELCAP,n-1). Puis FIGÉE : on règle ces lignes.
   nights: {
     // grace (K-01, ADR-004 §3) : préparation en secondes avant la corne ; firstDelay court à partir de la corne.
-    1: { grace: 60, initial: 1, maxH: 4, spawnEvery: 41, firstDelay: 40, baseLevel: 0 },
-    2: { grace: 30, initial: 1, maxH: 5, spawnEvery: 36, firstDelay: 18, baseLevel: 1 },
-    3: { grace: 30, initial: 2, maxH: 6, spawnEvery: 31, firstDelay: 18, baseLevel: 2 },
-    4: { grace: 30, initial: 2, maxH: 7, spawnEvery: 26, firstDelay: 18, baseLevel: 3 },
-    5: { grace: 30, initial: 3, maxH: 8, spawnEvery: 22, firstDelay: 18, baseLevel: 4 },
+    // V3-01 (ADR-007 §4, « très punitive ») : meute 2 à 3× plus nombreuse, apparitions 2× plus rapides, niveaux de départ
+    // plus hauts ; préparation 40 s dès la nuit 2 pour bâtir la base (l'enjeu central du modèle v3).
+    1: { grace: 60, initial: 3, maxH: 7,  spawnEvery: 20, firstDelay: 20, baseLevel: 0 },
+    2: { grace: 40, initial: 4, maxH: 9,  spawnEvery: 17, firstDelay: 12, baseLevel: 2 },
+    3: { grace: 40, initial: 5, maxH: 11, spawnEvery: 14, firstDelay: 10, baseLevel: 3 },
+    4: { grace: 40, initial: 6, maxH: 13, spawnEvery: 12, firstDelay: 8,  baseLevel: 5 },
+    5: { grace: 40, initial: 8, maxH: 16, spawnEvery: 10, firstDelay: 6,  baseLevel: 6 }, // V3-02 : niveaux de base 0/2/3/5/6
   },
 
   // Annonceur (K-01, ADR-004 §4) : durée d'affichage (s) et son (méthode de audio) par clé.
@@ -497,7 +502,7 @@ CF.data = {
     sealed:    { dur: 1.6, sfx: 'seal' },  breach:   { dur: 1.6, sfx: 'alarm' },
     kill:      { dur: 1.6, sfx: 'kill', routine: true },  grow:     { dur: 1.6, sfx: 'grow', routine: true },  lifeLost: { dur: 2, sfx: 'lifeLost' },
     pack:      { dur: 2.4, sfx: 'horn' },  packGrows: { dur: 1.8, sfx: 'spawn', routine: true }, encircle: { dur: 1.8, sfx: 'spawn' }, respawn: { dur: 1.5, sfx: 'spawn', routine: true },
-    flair:     { dur: 1.6, sfx: 'alarm' }, lost: { dur: 1.4, sfx: 'ack' }, wallLow: { dur: 1.8, sfx: 'alarm' }, stoneWall: { dur: 1.2, sfx: 'repair', routine: true }, bastion: { dur: 1.2, sfx: 'repair', routine: true }, surge: { dur: 1.2, sfx: 'grow' }, finale: { dur: 3, sfx: 'horn' },
+    flair:     { dur: 1.6, sfx: 'alarm' }, lost: { dur: 1.4, sfx: 'ack' }, wallLow: { dur: 1.8, sfx: 'alarm' }, swallowed: { dur: 2.5, sfx: 'alarm' }, freed: { dur: 1.6, sfx: 'seal' }, stoneWall: { dur: 1.2, sfx: 'repair', routine: true }, towerUp: { dur: 1.2, sfx: 'tower', routine: true }, rucheUp: { dur: 1.2, sfx: 'ruche', routine: true }, bastion: { dur: 1.2, sfx: 'repair', routine: true }, surge: { dur: 1.2, sfx: 'grow' }, finale: { dur: 3, sfx: 'horn' },
     itemBought: { dur: 1.2, sfx: 'buy' }, invFull: { dur: 1.2, sfx: 'deny' }, mist: { dur: 1.4, sfx: 'lure' }, beacon: { dur: 1.2, sfx: 'ack' },
     repaired:  { dur: 1.4, sfx: 'repair' }, snareSet: { dur: 1.0, sfx: 'ack' }, snared: { dur: 1.4, sfx: 'crack' },
   },
@@ -507,7 +512,7 @@ CF.data = {
   difficulty: {
     eveille: { spd: 0.85, chew: 0.85, lives: 1, income: 0.5, extra: 0 },
     braise:  { spd: 1,    chew: 1,    lives: 0, income: 0,   extra: 0 },
-    brasier: { spd: 1.15, chew: 1.15, lives: 0, income: 0,   extra: 1 },
+    brasier: { spd: 1.2,  chew: 1.25, lives: 0, income: 0,   extra: 2 },
   },
 
   // Améliorations d'aube — DÉCLARATIF. Un unique applyUpgrade(mods, def, ctx) dans game.js
@@ -533,7 +538,7 @@ CF.data = {
     { id: 'tourelle',  stat: 'towerDmg', op: 'mul', value: 1.25,       costs: [105, 180, 250] }, // dégâts des tourelles ×1,25
     { id: 'bottes',    stat: 'speed',    op: 'mul', value: 1.10,       costs: [75, 150] },      // vitesse de Cindre ×1,10
     { id: 'ruche',     stat: 'rucheMul', op: 'mul', value: 1.5,        costs: [120, 225] },     // production des Ruches ×1,5
-    { id: 'veilleuse', stat: 'towerCap', op: 'add', value: 1,          costs: [135, 240] },     // +1 tourelle maximum
+    { id: 'veilleuse', stat: 'towerRange', op: 'mul', value: 1.1,      costs: [105, 180] },     // V3-02 : Longue-vue, portée des tourelles ×1,1
     { id: 'macon',     stat: 'reinforceMul', op: 'mul', value: 0.75,   costs: [90, 180] },      // Q2 : renforcer −25 % de Sève
   ],
 
@@ -547,7 +552,8 @@ CF.data = {
     hpMax: 2.2,      // PV d'une tourelle (et cible de réparation)
     turn: 10,        // vitesse de rotation de la tourelle (×dt)
     firstCd: 0.4,    // s : délai avant le premier tir d'une tourelle neuve
-    capBase: 4,      // nombre de tourelles par défaut (mods.towerCap ; Q2 : 5 → 4)
+    capBase: 4,      // (inutilisé depuis V3-02 : plus de plafond de tourelles ; gardé pour mods.towerCap)
+    up: [ { cost: 60, dmg: 17, range: 5.2, hp: 3.5 }, { cost: 100, dmg: 26, range: 5.8, hp: 5 } ], // V3-02 : niveaux 2 et 3 (outil G)
   },
 
   player: {
@@ -560,7 +566,11 @@ CF.data = {
     dashCd: 3,           // s : recharge de l'Élan (mods.dashCd)
     water: 0.62,         // multiplicateur de vitesse dans l'eau
     bounce: -0.2,        // restitution de vitesse en heurtant une roche (gameplay : feel des collisions)
-    igniteTime: 0.55,    // s d'embrasement avant la perte d'une lueur
+    igniteTime: 0.55,    // s d'embrasement avant la perte d'une lueur (feu au sol)
+    swallow: 2.5,        // V3-04 : s pendant lesquelles une Cendre qui t'a avalée te garde ; l'éteindre te libère
+    swallowCarry: 0.8,   // V3-04 : vitesse de la Cendre qui t'emporte (×)
+    swallowFlee: 30,     // V3-04 : cases — elle fuit tes défenses vers ce point
+    freedInvuln: 2,      // V3-04 : s d'invulnérabilité à la libération
     respawnInvuln: 2.5,  // s d'invulnérabilité après une renaissance
     respawnMinDist: 12,  // cases : distance min aux Cendres pour renaître
     onWorks: 0.5,        // Q3 : vitesse de Cindre quand elle traverse SES ouvrages (murs, tourelles, Ruches)
@@ -580,7 +590,7 @@ CF.data = {
 
   lure: { life: 6 },    // s : durée d'un Leurre
 
-  startLives: 3,        // lueurs de départ (avant bonus de difficulté)
+  startLives: 1,        // lueurs de départ (avant bonus de difficulté) — V3-01 : 3 → 1, une seule lueur en Braise
 };
 })();
 
@@ -616,6 +626,8 @@ const sprScorch=bake(64,(x,s)=>grad(x,s,[[0,'rgba(12,9,11,.85)'],[.6,'rgba(18,13
 const grain=bake(128,(x,s)=>{const im=x.createImageData(s,s);for(let i=0;i<im.data.length;i+=4){const v=RNG.fx()*255;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=10;}x.putImageData(im,0,0);});
 
 const GROUND=0,BURNING=1,BURNT=2,WATER=3,STONE=4,WALL=5,WET=6,TOWER=7,RUCHE=8,TREE=9,STUMP=10;
+let swallowH=null; // V3-04 : la Cendre qui a avalé Cindre (fenêtre de sauvetage)
+let cmdQ=[],rec=null,recS='',rp=null,lastRec=null; // R-02 : file de commandes, enregistrement, lecture
 let pk={x:0,y:0,seen:false,search:0,flair:0},flowB,flowO,lowSeen,wallLvl,wakeT=0,finale=false,pings=[],inv=[],itemReq=[],useReq=[],mistT=0,beacons=[],snares=[]; // K-08 : sac, requêtes d'achat/usage, effets // K-07 : piste de la meute (dernière position connue) ; champ du briseur
 let state,burn,dry,flow,wallHP,placedAt,regrowAt,wood=0,chop=null; // K-06 : regrowAt = tick de repousse d'une souche ; chop = arbre en cours de coupe
 let terrainC,scorchC,tctx,sctx,mmData,mmTmp,mmTmpX,lightC,lctx,glowC,gctx,bloomA,bloomB;
@@ -689,7 +701,10 @@ function startRun(diffId,opts){
   const diff=M.DIFF[diffId]||M.DIFF.braise;
   run={night:1,diff,seed,daily:opts.daily||null,cls:opts.cls||null,mods:M.defaultMods(),taken:[],score:0,active:true,win:false,killsTotal:0};
   run.mods.income+=diff.income;
-  gen();wood=D.economy.woodStart;chop=null;inv=[];itemReq=[];useReq=[];sap=D.economy.sapStart;lives=D.startLives+diff.lives;kills=0;dmgNums=[];lureUsed=false;paused=false;dead=false;won=false;igniting=false;igniteT=0;invuln=0;shake=0;note="";noteT=0;
+  // R-02 : une partie jouée s'enregistre ; un replay rejoue la bande enregistrée (aucune entrée vivante n'atteint la simulation).
+  cmdQ=[];recS='';const sp=rp?rp.speed:1;rp=opts.replay?{d:opts.replay,i:0,left:0,F:null,speed:sp,di:0,draftCb:null,ended:false}:null;
+  rec=rp?null:{v:1,data:D.version,build:(CF.build&&CF.build.version)||null,seed,diff:diff.id,cls:run.cls,daily:run.daily,frames:[],drafts:[],end:null};
+  gen();wood=D.economy.woodStart;chop=null;inv=[];itemReq=[];useReq=[];sap=D.economy.sapStart;lives=D.startLives+diff.lives;kills=0;dmgNums=[];lureUsed=false;paused=false;dead=false;won=false;igniting=false;igniteT=0;swallowH=null;invuln=0;shake=0;note="";noteT=0;
   towers=[];ruches=[];techReq=[];tool=null;path=[];goal=null;moveMark=null;run.tech={};toggleShop(false);shots=[];parts=[];smoke=[];ab={dash:0};mmT=0;tick=0;acc=0; // pas fixe (ADR-002) : tick et accumulateur remis à 0 → une partie ne dépend jamais de la précédente.
   Object.assign(mouse,{x:VW/2,y:VH/2,wx:0,wy:0,down:false,rclick:false,lclick:false,rq:false,rcell:null,over:false,sx:-1,sy:-1,gp:false,gpMove:null}); // réinit souris : pas d'état de construction qui fuit d'une partie à l'autre
   CF.ui&&CF.ui.setLives(lives);
@@ -724,12 +739,17 @@ function dawn(){
   running=false;audio.win();
   if(run.night>=NIGHTS){run.win=true;finishRun();return;}
   const cards=M.draft(run.taken);
-  CF.ui.showDraft(run.night,cards,(id)=>{const def=D.upgrades.find(x=>x.id===id);if(def){applyUpgrade(run.mods,def,{get lives(){return lives;},set lives(v){lives=v;CF.ui.setLives(lives);}});run.taken.push(id);}
-    run.night++;startNight();});
+  const pick=(id)=>{if(rec)rec.drafts.push(id);const def=D.upgrades.find(x=>x.id===id);if(def){applyUpgrade(run.mods,def,{get lives(){return lives;},set lives(v){lives=v;CF.ui.setLives(lives);}});run.taken.push(id);}
+    run.night++;startNight();};
+  if(rp){rp.draftCb=pick;return;} // R-02 : en replay, la carte enregistrée est reprise entre deux frames, comme un clic
+  CF.ui.showDraft(run.night,cards,pick);
 }
 function finishRun(){
   running=false;run.active=false;const st={night:run.win?NIGHTS:run.night,kills:run.killsTotal+kills,win:run.win,seed:run.seed,diff:run.diff.id,daily:run.daily,score:(run.killsTotal+kills)*10+(run.win?NIGHTS:run.night-1)*100+lives*50};
-  run.score=st.score;const gain=M.recordRun(st);CF.ui.showResults(st,gain);
+  run.score=st.score;const end={tick,kills:st.kills,score:st.score,win:st.win,hash:stateHash()};
+  if(rp){st.daily=null;st.replay={ok:!!rp.d.end&&rp.d.end.hash===end.hash&&rp.d.end.tick===end.tick&&rp.d.end.score===end.score};CF.ui.showResults(st,0);return;} // R-02 : un replay ne compte pas
+  if(rec){rec.end=end;lastRec=JSON.parse(JSON.stringify(rec));if(M.lastReplay)M.lastReplay.set(JSON.stringify(lastRec));}
+  const gain=M.recordRun(st);CF.ui.showResults(st,gain);
 }
 function spawnHunter(level,nearTrail){level=Math.min(LEVELCAP,(level||0)+(finale?D.enemy.finale.levels:0)); // Q3 : en finale, toute Cendre naît à +2 niveaux
  let bx=0,by=0,bd=-1;
@@ -792,8 +812,11 @@ function beginDrag(){mouse.down=true;mouse.sx=CX(mouse.x/ZOOM+cam.x);mouse.sy=CY
 const inRange=(cx,cy)=>Math.hypot(cx*CELL+CELL/2-player.x,cy*CELL+CELL/2-player.y)<=RANGE*CELL;
 const hunterOn=(cx,cy)=>hunters.some(h=>Math.hypot(h.x-(cx*CELL+CELL/2),h.y-(cy*CELL+CELL/2))<CELL*D.build.hunterOnRadius);
 // Q2 : PV max d'un mur selon son renfort (palissade, pierre, bastion).
-const wallMax=i=>D.build.wallHPMax*D.build.reinforce.mul[wallLvl[i]];
-function canBuild(cx,cy){if(!inb(cx,cy)||!inRange(cx,cy)||hunterOn(cx,cy)&&!isWork(state[I(cx,cy)]))return 0;const st=state[I(cx,cy)];if(st===GROUND||st===BURNT||st===STUMP)return 1; /* Q3 : une Cendre n'empêche que la POSE */if(st===WALL&&wallHP[I(cx,cy)]<D.build.wallRepairBelow*wallMax(I(cx,cy)))return 2;if(st===TOWER&&wallHP[I(cx,cy)]<D.build.towerRepairBelow)return 3;return 0;}
+// V3-02 : wallLvl porte le niveau (0, 1, 2) de TOUT ouvrage : mur (palissade/pierre/bastion), tourelle, Ruche.
+const towerL=i=>wallLvl[i]?D.tower.up[wallLvl[i]-1]:{dmg:D.tower.dmg,range:D.tower.range,hp:D.tower.hpMax};
+const rucheL=i=>wallLvl[i]?D.build.rucheUp[wallLvl[i]-1]:{income:D.economy.rucheIncome,hp:D.build.rucheHPMax};
+const wallMax=i=>{const s=state[i];return s===TOWER?towerL(i).hp:s===RUCHE?rucheL(i).hp:D.build.wallHPMax*D.build.reinforce.mul[wallLvl[i]];};
+function canBuild(cx,cy){if(!inb(cx,cy)||!inRange(cx,cy)||hunterOn(cx,cy)&&!isWork(state[I(cx,cy)]))return 0;const st=state[I(cx,cy)];if(st===GROUND||st===BURNT||st===STUMP)return 1; /* Q3 : une Cendre n'empêche que la POSE */if(st===WALL&&wallHP[I(cx,cy)]<D.build.wallRepairBelow*wallMax(I(cx,cy)))return 2;if(st===TOWER&&wallHP[I(cx,cy)]<wallMax(I(cx,cy))*.95)return 3;return 0;}
 
 /* ---------- bâtir ---------- */
 const wallCost=()=>run?run.mods.wallCost:D.economy.wallCost;
@@ -806,27 +829,29 @@ function placeWall(cx,cy,k){const v=canBuild(cx,cy);if(!v||v===3)return false;co
   if(v===1?wood<cost:sap<sapPart)return false;sap-=sapPart;regrowAt[i]=0;lowSeen[i]=0;
   if(v===1){state[i]=WALL;wallLvl[i]=0;wallHP[i]=wallMax(i);placedAt[i]=tick;audio.wallN(k||0);}else{wallHP[i]=wallMax(i);audio.repair();}
   wood=Math.max(0,wood-cost);flowT=Math.min(flowT,secToTick(D.sim.flowQuick));for(let j=0;j<3;j++)parts.push({x:cx*CELL+7,y:cy*CELL+9,vx:rndF(40,-40),vy:rndF(-10,-60),life:.4,age:0,c:'dust',s:rndF(3,1.5)});return true;}
-function commitLine(){if(!running){mouse.sx=-1;return;}const cells=lineCells();let k=0;for(const[x,y]of cells){if(placeWall(x,y,k))k++;}mouse.sx=-1;mouse.sy=-1;}
+function commitLine(){if(!running){mouse.sx=-1;return;}const cells=lineCells();if(cells.length)cmdQ.push({k:'line',c:cells});mouse.sx=-1;mouse.sy=-1;} // R-02 : posé au pas suivant
 // Q2 : renforcer un mur (puits de Sève du siège) — palissade → pierre → bastion ; le mur repart à ses PV max.
-const reinforceCost=i=>{const R=D.build.reinforce;return wallLvl[i]<R.cost.length?Math.round(R.cost[wallLvl[i]]*run.mods.reinforceMul):null;};
-function reinforce(cx,cy){if(!running||!inb(cx,cy)||!inRange(cx,cy))return false;const i=I(cx,cy),c=state[i]===WALL?reinforceCost(i):null;
-  if(c==null||sap<c){audio.deny();return false;}sap-=c;wallLvl[i]++;wallHP[i]=wallMax(i);lowSeen[i]=0;audio.repair();announce(wallLvl[i]===1?'stoneWall':'bastion');
+const reinforceCost=i=>{const s=state[i],l=wallLvl[i],c=s===WALL?D.build.reinforce.cost[l]:s===TOWER?(D.tower.up[l]||{}).cost:s===RUCHE?(D.build.rucheUp[l]||{}).cost:null;
+  return c==null?null:Math.round(c*run.mods.reinforceMul);};
+function reinforce(cx,cy){if(!running||!inb(cx,cy)||!inRange(cx,cy))return false;const i=I(cx,cy),s=state[i],c=isWork(s)?reinforceCost(i):null;
+  if(c==null||sap<c){audio.deny();return false;}sap-=c;wallLvl[i]++;wallHP[i]=wallMax(i);lowSeen[i]=0;audio.repair();if(s===WALL)announce(wallLvl[i]===1?'stoneWall':'bastion');else announce(s===TOWER?'towerUp':'rucheUp',{n:wallLvl[i]+1});
   for(let j=0;j<8;j++)parts.push({x:cx*CELL+7,y:cy*CELL+7,vx:rndF(50,-50),vy:rndF(-20,-80),life:.5,age:0,c:'dust',s:rndF(3,1.5)});return true;}
-function demolish(){if(!running)return;const cx=CX(mouse.wx),cy=CY(mouse.wy);if(!inRange(cx,cy))return;const i=I(cx,cy),st=state[i];
+function demolish(cx=CX(mouse.wx),cy=CY(mouse.wy)){if(!running)return;if(!inRange(cx,cy))return;const i=I(cx,cy),st=state[i];
   if(st===WALL){state[i]=GROUND;wallLvl[i]=0;wood=Math.min(D.economy.woodCap,wood+D.economy.wallRefund);}else if(st===TOWER){state[i]=GROUND;sap=Math.min(D.economy.sapCap,sap+D.economy.towerRefund);}else if(st===RUCHE){state[i]=GROUND;sap=Math.min(D.economy.sapCap,sap+D.economy.rucheRefund);}else return;
   flowT=0;audio.crack();for(let j=0;j<8;j++)parts.push({x:cx*CELL+7,y:cy*CELL+7,vx:rndF(60,-60),vy:rndF(-20,-90),life:.5,age:0,c:'dust',s:rndF(3,1.5)});}
-function useTower(){if(!running)return;const cx=CX(mouse.wx),cy=CY(mouse.wy),v=canBuild(cx,cy),i=I(cx,cy);
-  if(v===3){if(sap<D.economy.towerRepairCost)return;wallHP[i]=D.tower.hpMax;sap-=D.economy.towerRepairCost;audio.repair();return;}
-  if(v!==1||towers.length>=run.mods.towerCap||sap<TOWER_COST){if(towers.length>=run.mods.towerCap)announce('towerCap',{cap:run.mods.towerCap});return;}
-  state[i]=TOWER;wallHP[i]=D.tower.hpMax;placedAt[i]=tick;towers.push({i,cd:secToTick(D.tower.firstCd),ang:-Math.PI/2,flash:0});sap-=TOWER_COST;audio.tower();flowT=Math.min(flowT,secToTick(D.sim.flowQuick));
+function useTower(cx=CX(mouse.wx),cy=CY(mouse.wy)){if(!running)return;const v=canBuild(cx,cy),i=I(cx,cy);
+  if(v===3){if(sap<D.economy.towerRepairCost)return;wallHP[i]=wallMax(i);sap-=D.economy.towerRepairCost;audio.repair();return;}
+  if(v!==1||sap<TOWER_COST)return; // V3-02 : plus de plafond de tourelles, c'est la Sève qui borne
+  state[i]=TOWER;wallLvl[i]=0;wallHP[i]=D.tower.hpMax;placedAt[i]=tick;towers.push({i,cd:secToTick(D.tower.firstCd),ang:-Math.PI/2,flash:0});sap-=TOWER_COST;audio.tower();flowT=Math.min(flowT,secToTick(D.sim.flowQuick));
   for(let j=0;j<10;j++)parts.push({x:cx*CELL+7,y:cy*CELL+7,vx:rndF(60,-60),vy:rndF(-20,-90),life:.5,age:0,c:'sap',s:rndF(3,1.5)});}
 // Ruche (K-02, ADR-004 §1) : bâtiment d'économie, 1 case. Posée au curseur (touche R ; outil en K-04).
-function useRuche(){if(!running)return;const E=D.economy,cx=CX(mouse.wx),cy=CY(mouse.wy),i=I(cx,cy);if(canBuild(cx,cy)!==1)return;
-  if(ruches.length>=E.rucheCap){announce('rucheCap',{cap:E.rucheCap});return;}if(sap<E.rucheCost){audio.deny();return;}
-  state[i]=RUCHE;wallHP[i]=D.build.rucheHPMax;placedAt[i]=tick;ruches.push({i,ph:rndF(6.28)});sap-=E.rucheCost;audio.ruche();flowT=Math.min(flowT,secToTick(D.sim.flowQuick));
+function useRuche(cx=CX(mouse.wx),cy=CY(mouse.wy)){if(!running)return;const E=D.economy,i=I(cx,cy);if(canBuild(cx,cy)!==1)return;
+  const cost=rucheCost();if(sap<cost){audio.deny();return;} // V3-02 : plus de plafond ; prix 40 + 15 par Ruche posée
+  state[i]=RUCHE;wallLvl[i]=0;wallHP[i]=D.build.rucheHPMax;placedAt[i]=tick;ruches.push({i,ph:rndF(6.28)});sap-=cost;audio.ruche();flowT=Math.min(flowT,secToTick(D.sim.flowQuick));
   for(let j=0;j<10;j++)parts.push({x:cx*CELL+7,y:cy*CELL+7,vx:rndF(60,-60),vy:rndF(-20,-90),life:.5,age:0,c:'sap',s:rndF(3,1.5)});}
 // Revenu (K-02) : base (+ difficulté, + cartes) + production des Ruches.
-const income=()=>run.mods.income+ruches.length*D.economy.rucheIncome*run.mods.rucheMul;
+const rucheCost=()=>D.economy.rucheCost+D.economy.rucheStep*(ruches?ruches.length:0);
+const income=()=>{let r=0;for(const q of ruches)r+=rucheL(q.i).income;return run.mods.income+r*run.mods.rucheMul;};
 // Cible du feu d'une Cendre bloquée : la Ruche la plus proche dans fire.rucheRange cases, sinon le mur mâché (K-02).
 function fireCell(h,wallI){let best=wallI,bd=D.enemy.fire.rucheRange;for(const r of ruches){const d=Math.hypot((r.i%COLS)+.5-h.x/CELL,((r.i/COLS)|0)+.5-h.y/CELL);if(d<bd){bd=d;best=r.i;}}return best;}
 // Boutique de tech (K-03, ADR-004 §7) : le panneau est hors simulation ; un achat est une REQUÊTE consommée par un pas
@@ -842,7 +867,7 @@ function applyUse(slot){const id=inv[slot];if(!id)return;const it=D.items.find(x
   if(id==='rosee'){mistT=secToTick(it.dur);announce('mist');for(let j=0;j<18;j++)parts.push({x:player.x+rndF(16,-16),y:player.y+rndF(16,-16),vx:rndF(30,-30),vy:rndF(-10,-40),life:1,age:0,c:'steam',s:rndF(4,2)});}
   else if(id==='lanterne'){beacons.push({x:player.x,y:player.y,t:secToTick(it.dur),r:it.radius});announce('beacon');}
   else if(id==='resine'){let n=0;const cx=CX(player.x),cy=CY(player.y),R=it.radius;
-    for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++){if(!inb(cx+x,cy+y)||x*x+y*y>R*R)continue;const i=I(cx+x,cy+y),s=state[i],mx=s===WALL?wallMax(i):s===TOWER?D.tower.hpMax:s===RUCHE?D.build.rucheHPMax:0;
+    for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++){if(!inb(cx+x,cy+y)||x*x+y*y>R*R)continue;const i=I(cx+x,cy+y),s=state[i],mx=isWork(s)?wallMax(i):0;
       if(mx&&wallHP[i]<mx){wallHP[i]=mx;n++;}}announce('repaired',{n});}
   else if(id==='ronce'){snares.push({x:player.x,y:player.y,life:secToTick(it.life),dur:secToTick(it.dur),r:it.radius});announce('snareSet');}}
 function itemList(){return D.items.map((it,k)=>({id:it.id,key:k===3?0:k+7,name:M.ITEM_META[it.id].name,desc:M.ITEM_META[it.id].desc,cost:it.cost,wood:it.wood,can:!!run&&sap>=it.cost&&wood>=it.wood&&inv.length<D.inventory}));}
@@ -950,6 +975,7 @@ function relocate(h){const cx=CX(h.x),cy=CY(h.y),RR=D.enemy.relocateRadius;
     h.x=nx*CELL+CELL/2;h.y=ny*CELL+CELL/2;h.vx=h.vy=0;h.stuck=0;h.spawn=secToTick(D.enemy.relocateGrace);for(let j=0;j<14;j++)parts.push({x:h.x,y:h.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.5,age:0,c:'ember',s:rndF(3,1.5)});return;}
   h.stuck=0;}
 function damageHunter(h,dmg,slowT){h.hp-=dmg;dmgNums.push({x:h.x+rndF(6,-6),y:h.y-h.r*2,v:Math.round(dmg),age:0});h.slow=Math.max(h.slow,slowT||0);h.pulse=Math.max(h.pulse,.15);
+  if(h.hp<=0&&h===swallowH){swallowH=null;igniting=false;igniteT=0;invuln=secToTick(D.player.freedInvuln);announce('freed');for(let i=0;i<18;i++)parts.push({x:h.x,y:h.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.6,age:0,c:'lueur',s:rndF(3,1.5)});}
   if(h.hp<=0){const k=hunters.indexOf(h);if(k>=0)hunters.splice(k,1);kills++;const bounty=D.economy.bounty.base+h.level*D.economy.bounty.perLevel;sap=Math.min(D.economy.sapCap,sap+bounty);announce('kill',{bounty});shake=Math.max(shake,4);
     for(let i=0;i<28;i++)parts.push({x:h.x,y:h.y,vx:rndF(160,-160),vy:rndF(60,-200),life:rndF(1,.4),age:0,c:'ember',s:rndF(3.5,1.5)});rq.push({t:secToTick(D.enemy.respawnDelay),level:Math.max(run.baseLevel,h.level-D.enemy.respawnDrop)});flowT=0;}}
 function updateHunters(){const d=run.diff,E=D.enemy,F=E.fire,wallMod=run.mods.wallHP;
@@ -962,17 +988,18 @@ function updateHunters(){const d=run.diff,E=D.enemy,F=E.fire,wallMod=run.mods.wa
       if(ox&&oy){if(chewable(st)||!moveOK(state[I(cx+ox,cy)])||!moveOK(state[I(cx,cy+oy)]))continue;}
       if(f<bv){bv=f;bst=[nx,ny];bstWall=chewable(st)?ni:-1;}}
     const straight=Math.hypot(tgt.x-h.x,tgt.y-h.y)/CELL;let chewing=false,tx=tgt.x,ty=tgt.y;
-    if(cd>=0&&bst&&bv<cd){tx=bst[0]*CELL+CELL/2;ty=bst[1]*CELL+CELL/2;
+    if(h!==swallowH&&cd>=0&&bst&&bv<cd){tx=bst[0]*CELL+CELL/2;ty=bst[1]*CELL+CELL/2;
       if(bstWall>=0){chewing=true;wallHP[bstWall]-=STEP*(E.chew+h.level*E.chewPerLevel)*d.chew/(state[bstWall]===RUCHE?1:state[bstWall]===TREE?1/D.forest.chewMul:wallMod);if(!reduce()&&RNG.fx()<.4)parts.push({x:(bstWall%COLS)*CELL+7,y:((bstWall/COLS)|0)*CELL+7,vx:rndF(40,-40),vy:rndF(-20,-70),life:.4,age:0,c:'dust',s:rndF(3,1.5)});
-        if(state[bstWall]!==TREE&&!lowSeen[bstWall]&&wallHP[bstWall]<.5*(state[bstWall]===RUCHE?D.build.rucheHPMax:state[bstWall]===TOWER?D.tower.hpMax:wallMax(bstWall))){lowSeen[bstWall]=1;announce('wallLow');pings.push({i:bstWall,t:secToTick(3)});}
+        if(state[bstWall]!==TREE&&!lowSeen[bstWall]&&wallHP[bstWall]<.5*wallMax(bstWall)){lowSeen[bstWall]=1;announce('wallLow');pings.push({i:bstWall,t:secToTick(3)});}
         if(wallHP[bstWall]<=0&&state[bstWall]===TREE){fell(bstWall);audio.crack();}
         else if(wallHP[bstWall]<=0){state[bstWall]=BURNT;dry[bstWall]=DRY_STEPS;stampScorch(bstWall);flowT=0;audio.crack();shake=Math.max(shake,2);}}}
+    if(h===swallowH){tx=h.flee.x;ty=h.flee.y;}
     h.blocked=chewing?h.blocked+1:0;
     if(chewing&&h.level>=F.chewLevel&&h.fireCd<=0&&h.blocked>secToTick(F.blockedTime)&&straight<F.chewRange){h.fireCd=secToTick(Math.max(F.minCd,F.cdBase-h.level*F.cdPerLevel));const fc=fireCell(h,bstWall),wx=(fc%COLS)*CELL+CELL/2,wy=((fc/COLS)|0)*CELL+CELL/2;const onP=straight<F.onPlayerRange&&!sealed;/* Q3 : Cindre scellée → le feu vise le mur */teles.push({x:onP?tgt.x:wx,y:onP?tgt.y:wy,r:F.teleChewR,t:secToTick(F.teleTime),tot:secToTick(F.teleTime)});audio.tele();}
     else if(h.role==='pyromane'&&h.level>=F.chewLevel&&h.fireCd<=0&&pyroTarget(h)>=0){const b=pyroTarget(h);h.fireCd=secToTick(E.pyroCd); // K-07 : le pyromane vise l'économie et les défenses
       teles.push({x:(b%COLS)*CELL+CELL/2,y:((b/COLS)|0)*CELL+CELL/2,r:F.teleChewR,t:secToTick(F.teleTime),tot:secToTick(F.teleTime)});audio.tele();}
-    else if(!chewing&&h.level>=F.wanderLevel&&h.fireCd<=0&&straight<F.wanderRange&&RNG.sim()<STEP*F.wanderChance){h.fireCd=secToTick(F.wanderCd);teles.push({x:tgt.x,y:tgt.y,r:F.teleWanderR,t:secToTick(F.teleTime),tot:secToTick(F.teleTime)});audio.tele();}
-    const inWet=state[ci]===WET,inWater=state[ci]===WATER,spd=(E.speed+h.level*E.speedPerLevel+clock*E.speedClock)*d.spd*(h.spawn>0?E.spawnMove:1)*(inWet?E.wet:inWater?E.water:1)*(h.slow>0?E.slow:1)*(h.root>0?0:1)*(wakeT>0?E.wake.mul:1)*(h.surge>0?E.surge.mul:1);h.surge=Math.max(0,(h.surge||0)-1);
+    else if(!chewing&&!sealed&&h.level>=F.wanderLevel&&h.fireCd<=0&&straight<F.wanderRange&&RNG.sim()<STEP*F.wanderChance){h.fireCd=secToTick(F.wanderCd);teles.push({x:tgt.x,y:tgt.y,r:F.teleWanderR,t:secToTick(F.teleTime),tot:secToTick(F.teleTime)});audio.tele();}
+    const inWet=state[ci]===WET,inWater=state[ci]===WATER,spd=(E.speed+h.level*E.speedPerLevel+clock*E.speedClock)*d.spd*(h.spawn>0?E.spawnMove:1)*(inWet?E.wet:inWater?E.water:1)*(h.slow>0?E.slow:1)*(h.root>0?0:1)*(wakeT>0?E.wake.mul:1)*(h.surge>0?E.surge.mul:1)*(h===swallowH?D.player.swallowCarry:1);h.surge=Math.max(0,(h.surge||0)-1);
     if(spd>20&&Math.hypot(h.x-player.x,h.y-player.y)<E.stepShakeR*CELL)shake=Math.max(shake,1+h.level*.15); // Q3 : la bête qui marche près de toi se sent (shakeAmp respecte reduceMotion/shake)
     const ang=Math.atan2(ty-h.y,tx-h.x);h.vx=lerp(h.vx,Math.cos(ang)*spd,E.moveLerp);h.vy=lerp(h.vy,Math.sin(ang)*spd,E.moveLerp);
     let nx2=h.x+h.vx*STEP,ny2=h.y+h.vy*STEP;if(!moveOK(state[I(CX(nx2),CY(h.y))]))nx2=h.x;if(!moveOK(state[I(CX(h.x),CY(ny2))]))ny2=h.y;
@@ -980,9 +1007,15 @@ function updateHunters(){const d=run.diff,E=D.enemy,F=E.fire,wallMod=run.mods.wa
     h.stuck=(!chewing&&h.spawn<=0&&moved<E.stuckSpeed*STEP)?h.stuck+1:0;if(h.stuck>secToTick(E.stuckTime))relocate(h);
     if((inWet||inWater)&&!reduce()&&RNG.fx()<.5)parts.push({x:h.x+rndF(8,-8),y:h.y-4,vx:rndF(10,-10),vy:rndF(-30,-60),life:.5,age:0,c:'steam',s:rndF(3,2)});
     if(!reduce()&&RNG.fx()<.3&&parts.length<220)parts.push({x:h.x+rndF(8,-8),y:h.y+rndF(8,-8),vx:rndF(20,-20),vy:rndF(-10,-40),life:rndF(.7,.3),age:0,c:'ember',s:rndF(2.4,1)});
-    if(!igniting&&invuln<=0&&Math.hypot(h.x-player.x,h.y-player.y)<h.r+player.r*E.catchReach)caught();
+    if(!igniting&&invuln<=0&&Math.hypot(h.x-player.x,h.y-player.y)<h.r+player.r*E.catchReach)caught(h);
   }}
-function caught(){if(invuln>0||igniting)return;igniting=true;igniteT=secToTick(D.player.igniteTime);shake=9;audio.lose();for(let i=0;i<22;i++)parts.push({x:player.x,y:player.y,vx:rndF(120,-120),vy:rndF(20,-160),life:rndF(.9,.4),age:0,c:'ember',s:rndF(3.5,1.5)});}
+// V3-04 (ADR-007, « Engloutie ») : une Cendre AVALE Cindre et l'emporte loin des défenses ; l'éteindre avant la fin la libère.
+// Le feu au sol (sans Cendre) garde la mort courte d'origine.
+function caught(h){if(invuln>0||igniting)return;igniting=true;igniteT=secToTick(h?D.player.swallow:D.player.igniteTime);
+  if(h){swallowH=h;h.fireCd=Math.max(h.fireCd,igniteT);path=[];chop=null;let bx=h.x,by=h.y,bd=Infinity;for(const s of[...towers,...ruches]){const x=(s.i%COLS)*CELL,y=((s.i/COLS)|0)*CELL,d=Math.hypot(x-h.x,y-h.y);if(d<bd){bd=d;bx=x;by=y;}}
+    let fx=h.x-bx,fy=h.y-by;const l=Math.hypot(fx,fy)||1;if(bd===Infinity){fx=W/2-h.x;fy=H/2-h.y;}const L=Math.hypot(fx,fy)||1;
+    h.flee={x:clamp(h.x+fx/L*D.player.swallowFlee*CELL,CELL,W-CELL),y:clamp(h.y+fy/L*D.player.swallowFlee*CELL,CELL,H-CELL)};announce('swallowed');}
+ shake=9;audio.lose();for(let i=0;i<22;i++)parts.push({x:player.x,y:player.y,vx:rndF(120,-120),vy:rndF(20,-160),life:rndF(.9,.4),age:0,c:'ember',s:rndF(3.5,1.5)});}
 // Q1 : base = zone fermée (sans Cendre, moins de baseMax cases) qui touche une tourelle ou une Ruche. Cindre y renaît en priorité.
 function baseCells(){const n=COLS*ROWS,seen=new Uint8Array(n),hc=new Set(hunters.map(h=>I(CX(h.x),CY(h.y))));
   for(const b of[...towers,...ruches]){const q=[];for(const[ox,oy]of NB4){const x=b.i%COLS+ox,y=((b.i/COLS)|0)+oy;if(inb(x,y)&&moveOK(state[I(x,y)])&&!seen[I(x,y)]){seen[I(x,y)]=1;q.push(I(x,y));}}
@@ -995,25 +1028,39 @@ function respawnPlayer(){const ox=player.x,oy=player.y;let bx=-1,by=-1,bd=-1;
   if(bx>=0){player.x=bx*CELL+CELL/2;player.y=by*CELL+CELL/2;}player.vx=player.vy=0;path=[];goal=null;chop=null;moveMark=null; /* Q3 : plus d'ordre périmé */invuln=secToTick(D.player.respawnInvuln);announce('lifeLost',{lives});
   for(let i=0;i<16;i++)parts.push({x:player.x,y:player.y,vx:rndF(90,-90),vy:rndF(90,-90),life:.6,age:0,c:'lueur',s:rndF(3,1.5)});CF.ui.setLives(lives);}
 function threatDist(){let b=1e9;for(const h of hunters)b=Math.min(b,Math.hypot(h.x-player.x,h.y-player.y));for(const te of teles)b=Math.min(b,Math.hypot(te.x-player.x,te.y-player.y));const cx=CX(player.x),cy=CY(player.y);for(let y=-3;y<=3;y++)for(let x=-3;x<=3;x++)if(inb(cx+x,cy+y)&&state[I(cx+x,cy+y)]===BURNING)b=Math.min(b,Math.hypot(x,y)*CELL);return b;}
-function updateDefenses(){const T=D.tower,range=CELL*T.range*run.mods.towerRange;
+function updateDefenses(){const T=D.tower;
   for(let k=ruches.length-1;k>=0;k--){const r=ruches[k];if(state[r.i]!==RUCHE){ruches.splice(k,1);continue;}r.ph+=STEP*2;} // brûlée, mâchée ou démolie : retirée
   for(let k=towers.length-1;k>=0;k--){const tw=towers[k];if(state[tw.i]!==TOWER){towers.splice(k,1);continue;}tw.cd--;tw.flash=Math.max(0,tw.flash-STEP);
-    const tx=(tw.i%COLS)*CELL+CELL/2,ty=((tw.i/COLS)|0)*CELL+CELL/2;let bh=null,bd=range;for(const h of hunters){const d=Math.hypot(h.x-tx,h.y-ty);if(d<bd){bd=d;bh=h;}}
+    const L=towerL(tw.i),tx=(tw.i%COLS)*CELL+CELL/2,ty=((tw.i/COLS)|0)*CELL+CELL/2;let bh=null,bd=CELL*L.range*run.mods.towerRange;for(const h of hunters){const d=Math.hypot(h.x-tx,h.y-ty);if(d<bd){bd=d;bh=h;}}
     if(bh){const ta=Math.atan2(bh.y-ty,bh.x-tx);let da=ta-tw.ang;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;tw.ang+=da*Math.min(1,STEP*T.turn);
-      if(tw.cd<=0){tw.cd=secToTick(T.rate*run.mods.towerRate);tw.flash=.12;shots.push({x:tx,y:ty-6,h:bh,sp:T.projSpeed});audio.shot();}}}
+      if(tw.cd<=0){tw.cd=secToTick(T.rate*run.mods.towerRate);tw.flash=.12;shots.push({x:tx,y:ty-6,h:bh,sp:T.projSpeed,dmg:L.dmg});audio.shot();}}}
   for(let k=shots.length-1;k>=0;k--){const sh=shots[k];if(hunters.indexOf(sh.h)<0){shots.splice(k,1);continue;}const dx=sh.h.x-sh.x,dy=sh.h.y-sh.y,d=Math.hypot(dx,dy);
-    if(d<T.hitRadius){damageHunter(sh.h,T.dmg*run.mods.towerDmg,secToTick(T.hitSlow));audio.hit();for(let j=0;j<6;j++)parts.push({x:sh.h.x,y:sh.h.y,vx:rndF(60,-60),vy:rndF(-20,-80),life:.4,age:0,c:'steam',s:rndF(3,2)});shots.splice(k,1);continue;}
+    if(d<T.hitRadius){damageHunter(sh.h,sh.dmg*run.mods.towerDmg,secToTick(T.hitSlow));audio.hit();for(let j=0;j<6;j++)parts.push({x:sh.h.x,y:sh.h.y,vx:rndF(60,-60),vy:rndF(-20,-80),life:.4,age:0,c:'steam',s:rndF(3,2)});shots.splice(k,1);continue;}
     sh.x+=dx/d*sh.sp*STEP;sh.y+=dy/d*sh.sp*STEP;}}
 
 /* ---------- update ---------- */
+/* ---------- R-02 : frontière d'entrée ----------
+   Tout ce qu'un pas consomme vient d'UNE trame F : capturée sur les entrées vivantes, ou lue sur la bande d'un replay.
+   Même trame, même graine → même partie (ADR-002) : c'est le replay, et demain le message du lockstep (ADR-006). */
+const MVK=[['z','w','arrowup'],['s','arrowdown'],['q','a','arrowleft'],['d','arrowright']];
+function captureInput(){const F={};let m=0;for(let b=0;b<4;b++)if(MVK[b].some(k=>keys[k]))m|=1<<b;if(keys.dash)m|=16;if(keys.lure)m|=32;if(m)F.m=m;
+  const gm=mouse.gpMove;if(gm&&(gm.x||gm.y))F.g=[Math.round(gm.x*1e3)/1e3,Math.round(gm.y*1e3)/1e3];
+  const c=[CX(mouse.x/ZOOM+cam.x),CY(mouse.y/ZOOM+cam.y)];
+  if(mouse.lclick){mouse.lclick=false;if(tool)F.l=[tool,c[0],c[1]];}
+  if(mouse.rclick){mouse.rclick=false;const r=mouse.rcell||c;F.r=[r[0],r[1],mouse.rq?1:0];mouse.rcell=null;}
+  if(hornReq){F.h=1;hornReq=false;}if(techReq.length)F.t=techReq.splice(0);if(itemReq.length)F.b=itemReq.splice(0);if(useReq.length)F.u=useReq.splice(0);if(cmdQ.length)F.c=cmdQ.splice(0);return F;}
+function recordInput(F){let s='';for(const k in F)s+=k+(k==='m'||k==='h'?F[k]:JSON.stringify(F[k]));const fr=rec.frames; // clé de comparaison bon marché : la plupart des trames sont vides ou de simple déplacement
+ if(fr.length&&s===recS)fr[fr.length-1][0]++;else{fr.push([1,F]);recS=s;}}
+function replayInput(){if(rp.left<=0){const e=rp.d.frames[rp.i++];if(!e){rp.ended=true;return{};}rp.left=e[0];rp.F=e[1];}rp.left--;return rp.F;}
+function applyCmd(c){if(c.k==='line'){let k=0;for(const[x,y]of c.c){if(placeWall(x,y,k))k++;}}else if(c.k==='dash')useDash();else if(c.k==='lure')useLure();}
 function update(){
   tick++;
+  const F=rp?replayInput():captureInput();if(rec)recordInput(F);if(F.c)for(const c of F.c)applyCmd(c);
   // Préparation : la nuit (horloge, vagues, renaissances) est gelée ; la Sève coule et le joueur bâtit.
-  if(graceTick>0){if(hornReq||--graceTick<=0)horn();}else nightTick++;
-  hornReq=false;
+  if(graceTick>0){if(F.h||--graceTick<=0)horn();}else nightTick++;
   for(const k in ab)ab[k]=Math.max(0,ab[k]-1);noteT=Math.max(0,noteT-1);invuln=Math.max(0,invuln-1);if(god)invuln=secToTick(1);
-  let ix=0,iy=0;if(keys['z']||keys['w']||keys['arrowup'])iy--;if(keys['s']||keys['arrowdown'])iy++;if(keys['q']||keys['a']||keys['arrowleft'])ix--;if(keys['d']||keys['arrowright'])ix++;
-  if(mouse.gpMove){ix+=mouse.gpMove.x;iy+=mouse.gpMove.y;}
+  let ix=0,iy=0;const mv=F.m|0;if(mv&1)iy--;if(mv&2)iy++;if(mv&4)ix--;if(mv&8)ix++;
+  if(F.g){ix+=F.g[0];iy+=F.g[1];}
   if(ix||iy)chop=null;
   if(path.length){if(ix||iy)path=[];else{const w=path[0],dx=w.x-player.x,dy=w.y-player.y,last=path.length===1;
     // dernier point : on continue de viser (donc de freiner) tant que Cindre n'est pas presque à l'arrêt, sinon l'inertie l'emporte d'une case
@@ -1026,9 +1073,10 @@ function update(){
   let nx2=player.x+player.vx*STEP,ny2=player.y+player.vy*STEP;
   if(state[I(CX(nx2),CY(player.y))]===STONE){nx2=player.x;player.vx*=D.player.bounce;}if(state[I(CX(player.x),CY(ny2))]===STONE){ny2=player.y;player.vy*=D.player.bounce;}
   player.x=clamp(nx2,player.r,W-player.r);player.y=clamp(ny2,player.r,H-player.r);
+  if(swallowH){player.x=swallowH.x;player.y=swallowH.y;player.vx=player.vy=0;} // V3-04 : emportée
   mouse.wx=mouse.x/ZOOM+cam.x;mouse.wy=mouse.y/ZOOM+cam.y;
-  if(keys.dash)useDash();if(mouse.lclick){mouse.lclick=false;if(tool==='tower')useTower();else if(tool==='ruche')useRuche();else if(tool==='demolish')demolish();else if(tool==='axe')orderChop(CX(mouse.wx),CY(mouse.wy));else if(tool==='reinforce')reinforce(CX(mouse.wx),CY(mouse.wy));}
-  if(mouse.rclick){mouse.rclick=false;orderMove(mouse.rq,mouse.rcell);mouse.rcell=null;}if(chop)stepChop();while(techReq.length)applyTech(techReq.shift());while(itemReq.length)applyBuy(itemReq.shift());while(useReq.length)applyUse(useReq.shift());stepItems();if(keys.lure)useLure();
+  if(mv&16)useDash();if(F.l){const[t,cx,cy]=F.l;if(t==='tower')useTower(cx,cy);else if(t==='ruche')useRuche(cx,cy);else if(t==='demolish')demolish(cx,cy);else if(t==='axe')orderChop(cx,cy);else if(t==='reinforce')reinforce(cx,cy);}
+  if(F.r)orderMove(!!F.r[2],[F.r[0],F.r[1]]);if(chop)stepChop();if(F.t)for(const id of F.t)applyTech(id);if(F.b)for(const id of F.b)applyBuy(id);if(F.u)for(const s of F.u)applyUse(s);stepItems();if(mv&32)useLure();
   sap=Math.min(D.economy.sapCap,sap+income()*STEP);
   for(let k=dmgNums.length-1;k>=0;k--){const d=dmgNums[k];d.age+=STEP;d.y-=22*STEP;if(d.age>.8)dmgNums.splice(k,1);}
   if(sp>30){player.step+=STEP*sp*.05;if(Math.sin(player.step)>.9)audio.foot();}
@@ -1045,11 +1093,11 @@ function update(){
   for(let k=rq.length-1;k>=0;k--){rq[k].t--;if(finale)rq[k].t=Math.min(rq[k].t,0);if(rq[k].t<=0){const lv=rq[k].level;rq.splice(k,1);spawns--;spawnHunter(lv,true);announce('respawn');}}}
   phase=finale?M.phase('finale',{s:Math.ceil((NIGHT_TICKS-nightTick)/60)}):graceTick?M.phase('prep',{n:run.night,s:Math.ceil(graceTick/60)}):M.phase(clock<.33?'hunt':clock<.66?'siege':'encircle',{n:run.night});
   stepPack();flowT--;if(flowT<=0){computeFlow();checkSealed();flowT=secToTick(D.sim.flowInterval);}
-  updateHunters();updateDefenses();
+  updateHunters();if(swallowH){player.x=swallowH.x;player.y=swallowH.y;}updateDefenses();
   if(tick%FIRE_EVERY===0)stepSim();
   let nb=0;for(let i=0;i<state.length;i+=7)if(state[i]===BURNING)nb++;audio.fire(clamp(nb/40,0,1));audio.esc(clock);
   if(state[I(CX(player.x),CY(player.y))]===BURNING&&!dead&&!igniting&&invuln<=0)caught();
-  if(igniting){igniteT--;if(igniteT<=0){igniting=false;if(lives>1){lives--;respawnPlayer();}else{lives=0;dead=true;CF.ui.setLives(0);run.killsTotal+=0;finishRun();return;}}}
+  if(igniting){igniteT--;if(igniteT<=0){igniting=false;swallowH=null;if(lives>1){lives--;respawnPlayer();}else{lives=0;dead=true;CF.ui.setLives(0);run.killsTotal+=0;finishRun();return;}}}
   if(clock>=1&&running){run.killsTotal+=kills;kills=0;dawn();return;}
   // Cosmétique (hors empreinte) : avance au pas fixe, déterministe sur le flux fx (ADR-002 §7).
   for(let k=parts.length-1;k>=0;k--){const p=parts[k];p.age+=STEP;if(p.age>=p.life){parts.splice(k,1);continue;}p.x+=p.vx*STEP;p.y+=p.vy*STEP;p.vy+=(p.c==='sap'||p.c==='dust'?300:-14)*STEP;}
@@ -1069,9 +1117,10 @@ function drawMinimap(){mmx.imageSmoothingEnabled=false;mmx.drawImage(mmTmp,0,0,C
   for(const b of beacons){mmx.strokeStyle='rgba(255,224,138,.6)';mmx.beginPath();mmx.arc(b.x/CELL,b.y/CELL,b.r,0,7);mmx.stroke();}
   for(const h of hunters){if(!visibleToPlayer(h))continue;mmx.fillStyle='#ff6a2b';mmx.beginPath();mmx.arc(h.x/CELL,h.y/CELL,2.2,0,7);mmx.fill();}for(const lu of lures){mmx.fillStyle='#c8b4ff';mmx.beginPath();mmx.arc(lu.x/CELL,lu.y/CELL,2,0,7);mmx.fill();}
   mmx.fillStyle='#7ff0ff';mmx.beginPath();mmx.arc(player.x/CELL,player.y/CELL,2.4,0,7);mmx.fill();}
-const HP=[{top:[255,177,90],mid:[255,106,43],bot:[122,30,16],ft:[255,242,201],fb:[255,74,30],glow:[255,150,60]},{top:[255,130,120],mid:[228,38,68],bot:[105,8,40],ft:[255,232,232],fb:[255,40,90],glow:[255,80,110]},{top:[255,255,255],mid:[196,84,255],bot:[70,10,110],ft:[255,255,255],fb:[190,110,255],glow:[210,140,255]}];
+const HP=[{top:[255,177,90],mid:[255,106,43],bot:[122,30,16],ft:[255,242,201],fb:[255,74,30],glow:[255,150,60]},{top:[255,130,120],mid:[228,38,68],bot:[105,8,40],ft:[255,232,232],fb:[255,40,90],glow:[255,80,110]},{top:[255,255,255],mid:[196,84,255],bot:[70,10,110],ft:[255,255,255],fb:[190,110,255],glow:[210,140,255]},{top:[255,255,255],mid:[236,190,255],bot:[150,70,210],ft:[255,255,255],fb:[245,215,255],glow:[250,215,255]}];
 const mixC=(a,b,t)=>a.map((v,i)=>Math.round(lerp(v,b[i],t)));
-function pal(level){const t=Math.min(6,level)/6,A=t<.5?HP[0]:HP[1],B=t<.5?HP[1]:HP[2],k=t<.5?t*2:(t-.5)*2,o={};for(const key in A)o[key]=mixC(A[key],B[key],k);return o;}
+function pal(level){if(level>=9){const o={};for(const key in HP[2])o[key]=mixC(HP[2][key],HP[3][key],Math.min(1,(level-8)/2));return o;} // V3-02 : Brandon ardent, plus clair et plus lumineux
+  const t=Math.min(6,level)/6,A=t<.5?HP[0]:HP[1],B=t<.5?HP[1]:HP[2],k=t<.5?t*2:(t-.5)*2,o={};for(const key in A)o[key]=mixC(A[key],B[key],k);return o;}
 const rgb=c=>`rgb(${c[0]},${c[1]},${c[2]})`,rgba=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
 function drawCreature(e,t,menace){
   const p=e,r=p.r,skin=M.skin();ctx.save();const bob=Math.sin(t*2.4+(p.step||p.anim))*(2+(p.velStretch||0)*2);ctx.translate(p.x,p.y+bob);
@@ -1109,6 +1158,8 @@ function drawLights(ox,oy){lctx.globalCompositeOperation='source-over';lctx.fill
   lctx.globalCompositeOperation='source-over';ctx.drawImage(lightC,0,0);}
 // Arbres (K-06) : variété tirée d'un hachage de la case (aucun hasard au rendu), balancement et repousse en scale.
 const TREE_TONES=[['#1f4a2c','#2f6e3a','#4f9a4a'],['#24502a','#3a7a35','#62a84f'],['#1c4636','#2c6a4e','#4c9a6a']];
+// V3-02 : niveau d'un ouvrage — des pastilles d'or sous l'ouvrage (lisible sans texte)
+function drawPips(x,y,l){for(let k=0;k<l;k++){ctx.fillStyle='#000a';ctx.beginPath();ctx.arc(x-3+k*6,y+CELL*.62,2.4,0,7);ctx.fill();ctx.fillStyle='#efc879';ctx.beginPath();ctx.arc(x-3+k*6,y+CELL*.62,1.7,0,7);ctx.fill();}}
 function drawTree(i,s,px,py){const h=Math.imul(i,2654435761)>>>0,cx=px+CELL/2+((h&7)-3.5)*.5,cy=py+CELL/2+(((h>>3)&7)-3.5)*.5;
   if(s===STUMP){ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(cx+1,cy+3,5,2.5,0,0,7);ctx.fill();ctx.fillStyle='#5a3a22';ctx.beginPath();ctx.ellipse(cx,cy+1,4,3,0,0,7);ctx.fill();
     ctx.fillStyle='#b48a5a';ctx.beginPath();ctx.ellipse(cx,cy,3.2,2.2,0,0,7);ctx.fill();ctx.strokeStyle='#7a5234';ctx.lineWidth=.6;ctx.beginPath();ctx.ellipse(cx,cy,1.6,1.1,0,0,7);ctx.stroke();return;}
@@ -1135,17 +1186,17 @@ function draw(t){
       if(hp<.75){ctx.strokeStyle='rgba(30,15,10,.75)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+3,py+CELL-4);ctx.lineTo(px+CELL/2,py+5);ctx.lineTo(px+CELL-3,py+CELL-5);ctx.stroke();} // Q1 : fissures en trois stades
       if(hp<.5){ctx.fillStyle='rgba(20,10,8,.35)';rr(px+1,py+1,CELL-2,CELL-2,3);ctx.fill();ctx.strokeStyle='rgba(30,15,10,.85)';ctx.beginPath();ctx.moveTo(px+2,py+4);ctx.lineTo(px+CELL*.4,py+CELL*.55);ctx.lineTo(px+CELL*.3,py+CELL-2);ctx.stroke();}
       if(hp<.25){ctx.strokeStyle=`rgba(255,120,60,${reduce()?.8:.55+.3*Math.sin(tick*STEP*10)})`;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(px+CELL-2,py+3);ctx.lineTo(px+CELL*.6,py+CELL*.5);ctx.lineTo(px+CELL*.75,py+CELL-2);ctx.stroke();}}
-    else if(s===RUCHE){const cx2=px+CELL/2,cy2=py+CELL/2,hp=wallHP[i]/D.build.rucheHPMax,r=ruches.find(q=>q.i===i),ph=r?r.ph:0,age=(tick-placedAt[i])*STEP,pop=age<.3?1-Math.pow(1-age/.3,2)*Math.cos(age*36)*.4:1;
+    else if(s===RUCHE){const cx2=px+CELL/2,cy2=py+CELL/2,hp=wallHP[i]/wallMax(i),r=ruches.find(q=>q.i===i),ph=r?r.ph:0,age=(tick-placedAt[i])*STEP,pop=age<.3?1-Math.pow(1-age/.3,2)*Math.cos(age*36)*.4:1;
       ctx.save();ctx.translate(cx2,cy2);ctx.scale(pop,pop);const hex=(R,c)=>{ctx.fillStyle=c;ctx.beginPath();for(let k=0;k<6;k++){const a=k*Math.PI/3+Math.PI/6;ctx.lineTo(Math.cos(a)*R,Math.sin(a)*R);}ctx.closePath();ctx.fill();};
       ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.arc(1,5,CELL*.62,0,7);ctx.fill();hex(CELL*.66,'#2f6b3a');hex(CELL*.5,'#58b867');hex(CELL*.24,'#c9ffb0');
       if(!reduce())for(let k=0;k<3;k++){const a=ph+k*2.09;ctx.fillStyle='#f4ffb8';ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(Math.cos(a)*CELL*.85,Math.sin(a*1.3)*CELL*.6-3,1.6,0,7);ctx.fill();}ctx.globalAlpha=1;
       if(hp<.98){ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(-CELL*.5,-CELL*.9,CELL,3);ctx.fillStyle=hp>.5?'#9ff3a0':'#ffb04a';ctx.fillRect(-CELL*.5,-CELL*.9,CELL*Math.max(0,hp),3);}ctx.restore();}
-    else if(s===TOWER){const hp=wallHP[i]/2.2,cx2=px+CELL/2,cy2=py+CELL/2,tw=towers.find(q=>q.i===i),ang=tw?tw.ang:-Math.PI/2,age=(tick-placedAt[i])*STEP,pop=age<.3?1-Math.pow(1-age/.3,2)*Math.cos(age*36)*.4:1;
+    else if(s===TOWER){const hp=wallHP[i]/wallMax(i),cx2=px+CELL/2,cy2=py+CELL/2,tw=towers.find(q=>q.i===i),ang=tw?tw.ang:-Math.PI/2,age=(tick-placedAt[i])*STEP,pop=age<.3?1-Math.pow(1-age/.3,2)*Math.cos(age*36)*.4:1;
       ctx.save();ctx.translate(cx2,cy2);ctx.scale(pop,pop);ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.arc(1,5,CELL*.66,0,7);ctx.fill();
       ctx.fillStyle='#1e4f5b';ctx.beginPath();ctx.arc(0,2,CELL*.66,0,7);ctx.fill();ctx.fillStyle='#2b6f7c';ctx.beginPath();ctx.arc(0,-1,CELL*.56,0,7);ctx.fill();
       ctx.save();ctx.rotate(ang);ctx.fillStyle='#3c8fa0';rr(0,-3,CELL*.62,6,3);ctx.fill();ctx.fillStyle='#bff6ff';rr(CELL*.4,-1.5,CELL*.26,3,1.5);ctx.fill();if(tw&&tw.flash>0){ctx.fillStyle=`rgba(220,255,255,${tw.flash/.12})`;ctx.beginPath();ctx.arc(CELL*.7,0,4,0,7);ctx.fill();}ctx.restore();
       ctx.fillStyle=`rgba(140,230,250,${.5+hp*.5})`;ctx.beginPath();ctx.arc(0,-1,CELL*.26,0,7);ctx.fill();ctx.fillStyle='#f4ffff';ctx.beginPath();ctx.arc(0,-2,CELL*.1,0,7);ctx.fill();ctx.restore();
-      ctx.strokeStyle='rgba(127,240,255,.1)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx2,cy2,CELL*4.6*(run?run.mods.towerRange:1),0,7);ctx.stroke();}}
+      ctx.strokeStyle='rgba(127,240,255,.1)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx2,cy2,CELL*towerL(i).range*(run?run.mods.towerRange:1),0,7);ctx.stroke();drawPips(cx2,cy2,wallLvl[i]);}}
   for(const te of teles){const k=1-te.t/te.tot,R=te.r*CELL+CELL*.5;ctx.strokeStyle=`rgba(255,120,40,${.5+k*.4})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(te.x,te.y,R,0,7);ctx.stroke();ctx.fillStyle=`rgba(255,90,20,${.08+k*.22})`;ctx.beginPath();ctx.arc(te.x,te.y,R*(1-k*.85),0,7);ctx.fill();}
   if(!reduce()){for(const s of smoke){const a=(1-s.age/s.life)*.5;ctx.globalAlpha=a;const sz=s.r*(1+s.age);ctx.drawImage(sprSmoke,s.x-sz/2,s.y-sz/2,sz,sz);}ctx.globalAlpha=1;}
   gctx.setTransform(1,0,0,1,0,0);gctx.clearRect(0,0,VW,VH);gctx.setTransform(ZOOM,0,0,ZOOM,-ox*ZOOM,-oy*ZOOM);gctx.globalCompositeOperation='lighter';
@@ -1168,7 +1219,7 @@ function draw(t){
     if(moveMark&&!reduce()){const k=moveMark.t/.7,r=CELL*(.9-.5*k);ctx.strokeStyle=`rgba(140,255,160,${1-k})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(moveMark.x,moveMark.y,r,r*.55,0,0,7);ctx.stroke();
       ctx.beginPath();ctx.ellipse(moveMark.x,moveMark.y,r*.45,r*.25,moveMark.ph,0,7);ctx.stroke();}
     if(tool&&tool!=='wall'&&(mouse.over||mouse.gp)){const bx=CX(mouse.wx),by=CY(mouse.wy),st=state[I(bx,by)],cost=tool==='tower'?TOWER_COST:D.economy.rucheCost,
-      ok=tool==='reinforce'?inRange(bx,by)&&st===WALL&&reinforceCost(I(bx,by))!=null&&sap>=reinforceCost(I(bx,by)):tool==='axe'?st===TREE:tool==='demolish'?inRange(bx,by)&&(st===WALL||st===TOWER||st===RUCHE):canBuild(bx,by)===1&&sap>=cost;
+      ok=tool==='reinforce'?inRange(bx,by)&&isWork(st)&&reinforceCost(I(bx,by))!=null&&sap>=reinforceCost(I(bx,by)):tool==='axe'?st===TREE:tool==='demolish'?inRange(bx,by)&&(st===WALL||st===TOWER||st===RUCHE):canBuild(bx,by)===1&&sap>=cost;
       ctx.fillStyle=ok?(tool==='demolish'?'rgba(255,200,80,.25)':'rgba(127,240,255,.22)'):'rgba(255,90,60,.14)';rr(bx*CELL+1,by*CELL+1,CELL-2,CELL-2,4);ctx.fill();
       ctx.strokeStyle=ok?'rgba(190,255,255,.9)':'rgba(255,120,90,.7)';ctx.lineWidth=1.5;rr(bx*CELL+1,by*CELL+1,CELL-2,CELL-2,4);ctx.stroke();
       const gx=bx*CELL+CELL/2,gy=by*CELL+CELL/2;ctx.save();ctx.strokeStyle=ok?'rgba(190,255,255,.75)':'rgba(255,120,90,.6)';ctx.lineWidth=1.5;
@@ -1194,7 +1245,9 @@ function draw(t){
   for(const sh of shots){ctx.fillStyle='#bff6ff';ctx.beginPath();ctx.arc(sh.x,sh.y,2.6,0,7);ctx.fill();ctx.fillStyle='rgba(127,240,255,.35)';ctx.beginPath();ctx.arc(sh.x,sh.y,5,0,7);ctx.fill();}
   ctx.font='800 7px ui-rounded,system-ui,sans-serif';ctx.textAlign='center';for(const d of dmgNums){const a=1-d.age/.8;ctx.fillStyle=`rgba(0,0,0,${a*.6})`;ctx.fillText(d.v,d.x+1,d.y+1);ctx.fillStyle=`rgba(191,246,255,${a})`;ctx.fillText(d.v,d.x,d.y);}ctx.textAlign='start';
   if(!won){const pu=reduce()?1:1+.07*Math.sin(tick*STEP*5),rx=player.r*1.7*pu;ctx.strokeStyle='rgba(120,255,140,.8)';ctx.lineWidth=1.6;ctx.beginPath();ctx.ellipse(player.x,player.y+player.r*.7,rx,rx*.45,0,0,7);ctx.stroke();}
-  if(!won&&!(invuln>0&&Math.floor(t*14)%2===0)){ctx.globalAlpha=mistT>0?.38:1;drawCreature(player,t,false);ctx.globalAlpha=1;} // rosée : Cindre translucide
+  if(swallowH){const k=igniteT/secToTick(D.player.swallow),r=swallowH.r*2.2;ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.5)';ctx.beginPath();ctx.arc(swallowH.x,swallowH.y,r,0,7);ctx.stroke();
+    ctx.strokeStyle='#7ff0ff';ctx.beginPath();ctx.arc(swallowH.x,swallowH.y,r,-Math.PI/2,-Math.PI/2+k*Math.PI*2);ctx.stroke();} // V3-04 : la lumière qui reste
+  if(!won&&!(invuln>0&&Math.floor(t*14)%2===0)){ctx.globalAlpha=swallowH?.45:mistT>0?.38:1;drawCreature(player,t,false);ctx.globalAlpha=1;} // rosée : Cindre translucide
   ctx.restore();
   {const a=bloomA.getContext('2d'),b=bloomB.getContext('2d');a.clearRect(0,0,bloomA.width,bloomA.height);a.drawImage(glowC,0,0,bloomA.width,bloomA.height);b.clearRect(0,0,bloomB.width,bloomB.height);b.drawImage(bloomA,0,0,bloomB.width,bloomB.height);
     ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.55;ctx.drawImage(bloomA,0,0,VW,VH);ctx.globalAlpha=.45;ctx.drawImage(bloomB,0,0,VW,VH);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';}
@@ -1209,10 +1262,12 @@ function hud(){if(!run)return;const $=id=>document.getElementById(id);if(shopOpe
   $('timer').textContent=running?`${Math.round((1-clock)*NIGHT_LEN)} s avant l'aube`:'';$('kills').textContent=`${run.killsTotal+kills} eteinte${run.killsTotal+kills>1?'s':''} · ${hunters.length} en chasse`;
   CF.ui.cardRefresh();}
 // État lu par la command card (K-05) — lecture seule, hors simulation.
-function cardState(){if(!run)return null;return{inv:inv.slice(),invMax:D.inventory,mist:mistT>0,tool,sap,wood,woodCap:D.economy.woodCap,chop:!!chop,income:income(),shop:shopOpen,grace:running&&graceTick>0,night:run.night,nights:NIGHTS,
-  cost:{reinforce:Math.round(D.build.reinforce.cost[0]*(run?run.mods.reinforceMul:1)),wall:wallCost(),tower:TOWER_COST,ruche:D.economy.rucheCost},towers:towers.length,towerCap:run.mods.towerCap,ruches:ruches.length,rucheCap:D.economy.rucheCap,
+function cardState(){if(!run)return null;return{replay:rp?{speed:rp.speed,seed:run.seed,tick}:null,inv:inv.slice(),invMax:D.inventory,mist:mistT>0,tool,sap,wood,woodCap:D.economy.woodCap,chop:!!chop,income:income(),shop:shopOpen,grace:running&&graceTick>0,night:run.night,nights:NIGHTS,
+  cost:{reinforce:Math.round(D.build.reinforce.cost[0]*(run?run.mods.reinforceMul:1)),wall:wallCost(),tower:TOWER_COST,ruche:rucheCost()},towers:towers.length,towerCap:run.mods.towerCap,ruches:ruches.length,rucheCap:D.economy.rucheCap,
   dash:ab.dash>0?ab.dash/secToTick(run.mods.dashCd):0,lureUsed};}
 
+function stateHash(){let h=2166136261;for(let i=0;i<state.length;i++)h=(Math.imul(h^state[i],16777619))>>>0;h=(Math.imul(h^Math.round(player.x*100),16777619))>>>0;return(Math.imul(h^Math.round(player.y*100),16777619))>>>0;}
+function startReplay(d){if(!d||d.v!==1||!Array.isArray(d.frames))return false;startRun(d.diff,{seed:d.seed,cls:d.cls,replay:d});paused=false;return true;}
 /* ---------- boucle ---------- */
 let last=performance.now(),acc=0;
 // Accumulateur à pas fixe (ADR-002) : la simulation avance par pas de STEP entiers, indépendamment
@@ -1220,24 +1275,28 @@ let last=performance.now(),acc=0;
 // jeté (le temps ralentit, pas de rafale). En pause/menu, rien ne s'accumule.
 function frame(now){const real=(now-last)/1000;last=now;const t=now/1000;
   if(CF.input)CF.input.poll(real);
-  if(run&&running&&!paused){acc+=Math.min(real,STEP*4);let steps=0;while(acc>=STEP&&steps<4){update();acc-=STEP;steps++;}if(acc>=STEP)acc=0;}
+  if(rp&&rp.draftCb){const cb=rp.draftCb;rp.draftCb=null;cb(rp.d.drafts[rp.di++]);}
+  if(rp&&rp.ended&&run&&run.active){run.active=false;running=false;CF.ui.menu&&CF.ui.menu();} // bande finie sans fin de partie (partie abandonnée)
+  if(run&&running&&!paused){const sp=rp?rp.speed:1;acc+=Math.min(real,STEP*4)*sp;let steps=0;while(acc>=STEP&&steps<4*sp){update();acc-=STEP;steps++;}if(acc>=STEP)acc=0;}
   else acc=0;
   if(run)draw(t);hud();requestAnimationFrame(frame);}
 addEventListener('visibilitychange',()=>{last=performance.now();acc=0;}); // retour d'onglet : pas de rattrapage
 
 // Corne anticipée (Entrée, bouton) : simple requête, appliquée au pas suivant (déterministe, prête pour le lockstep).
 function soundHorn(){if(running&&graceTick>0)hornReq=true;}
-CF.game={startRun,commitLine,beginDrag,useTower,useDash,useLure,demolish,soundHorn,toggleShop,buyTech,techList,buyItem,useItem,itemList,setTool,cycleTool,cardState,mouse,keys,audio,
+CF.game={startRun,startReplay,replayData:()=>rec&&JSON.parse(JSON.stringify(rec)),lastReplay:()=>lastRec||(M.lastReplay&&(()=>{try{return JSON.parse(M.lastReplay.get());}catch(e){return null;}})()),
+  replaySpeed(v){if(rp&&v)rp.speed=v;return rp?rp.speed:0;},get replaying(){return !!rp;},commitLine,beginDrag,useTower,
+  useDash(){if(running)cmdQ.push({k:'dash'});},useLure(){if(running)cmdQ.push({k:'lure'});},/* R-02 : la carte de commandes passe par la file */demolish,soundHorn,toggleShop,buyTech,techList,buyItem,useItem,itemList,setTool,cycleTool,cardState,mouse,keys,audio,
   get running(){return running;},get shopOpen(){return shopOpen;},get tool(){return tool;},get paused(){return paused;},set paused(v){paused=v;},get run(){return run;},
   setShift(v){shiftK=v;},setCtrl(v){ctrlK=v;},abandon(){if(run&&run.active){run.active=false;running=false;}},
   dev:{dawn(){graceTick=0;nightTick=NIGHT_TICKS;},skipGrace:soundHorn,shakeAmp,god(v){god=!!v;},seed(n){RNG.seed(n);},applyUpgrade,
-    state(){return{night:run&&run.night,lives,sap,kills,hunters:hunters.length,towers:towers.length,running,clock,tick,grace:graceTick,nightTick,ruches:ruches.length,income:income(),tool,path:path.length,goal,wood,chop:chop?chop.i:-1,cell:[CX(player.x),CY(player.y)]};},orderCell,orderQueue,orderChop,pack:()=>Object.assign({},pk),hidden,inv:()=>inv.slice(),items:()=>({mist:mistT,beacons:beacons.length,snares:snares.length,roots:hunters.map(h=>h.root||0)}),visibleToPlayer:k=>visibleToPlayer(hunters[k]),spawn(l){spawnHunter(l||0);},placeWall(x,y){return placeWall(x,y,0);},checkSealed(){checkSealed();return sealed;},teleCells:()=>teles.map(e=>I(CX(e.x),CY(e.y))),reinforce,wallLvl:i=>wallLvl[i],wake:()=>wakeT,finale:()=>finale,kill(k){damageHunter(hunters[k],1e9);},respawn(){respawnPlayer();},relocate(k){relocate(hunters[k]);},pings:()=>pings.length,wallHP:i=>wallHP[i],note:()=>note,repairCost,setCell(x,y,st,hp){const i=I(x,y);state[i]=st;wallHP[i]=hp==null?1:hp;if(st===RUCHE)ruches.push({i,ph:0});},teles:()=>teles.map(e=>[CX(e.x),CY(e.y)]),hunterInfo:()=>hunters.map(h=>({role:h.role,level:h.level,cell:[CX(h.x),CY(h.y)]})),setHunter(k,o){Object.assign(hunters[k],o);},setPlayer(x,y){player.x=x;player.y=y;player.vx=player.vy=0;},hunterAt(k,x,y){const h=hunters[k];h.x=x;h.y=y;h.vx=h.vy=0;},flowAt:(i,b)=>(b?flowB:flow)[i],computeFlow,fell,setWood(v){wood=v;},regrowAt:i=>regrowAt[i],fireCell,findPath,legs:()=>path.filter(p=>p.end).map(p=>[p.i%COLS,(p.i/COLS)|0]),
+    state(){return{night:run&&run.night,lives,sap,kills,hunters:hunters.length,towers:towers.length,running,clock,tick,grace:graceTick,nightTick,ruches:ruches.length,income:income(),tool,path:path.length,goal,wood,chop:chop?chop.i:-1,cell:[CX(player.x),CY(player.y)]};},orderCell,orderQueue,orderChop,pack:()=>Object.assign({},pk),hidden,inv:()=>inv.slice(),items:()=>({mist:mistT,beacons:beacons.length,snares:snares.length,roots:hunters.map(h=>h.root||0)}),visibleToPlayer:k=>visibleToPlayer(hunters[k]),spawn(l){spawnHunter(l||0);},swallowed:()=>swallowH?hunters.indexOf(swallowH):-1,placeWall(x,y){return placeWall(x,y,0);},checkSealed(){checkSealed();return sealed;},teleCells:()=>teles.map(e=>I(CX(e.x),CY(e.y))),reinforce,wallLvl:i=>wallLvl[i],wake:()=>wakeT,finale:()=>finale,kill(k){damageHunter(hunters[k],1e9);},respawn(){respawnPlayer();},relocate(k){relocate(hunters[k]);},pings:()=>pings.length,wallHP:i=>wallHP[i],note:()=>note,repairCost,setCell(x,y,st,hp){const i=I(x,y);state[i]=st;wallHP[i]=hp==null?1:hp;if(st===RUCHE)ruches.push({i,ph:0});},teles:()=>teles.map(e=>[CX(e.x),CY(e.y)]),hunterInfo:()=>hunters.map(h=>({role:h.role,level:h.level,cell:[CX(h.x),CY(h.y)]})),setHunter(k,o){Object.assign(hunters[k],o);},setPlayer(x,y){player.x=x;player.y=y;player.vx=player.vy=0;},hunterAt(k,x,y){const h=hunters[k];h.x=x;h.y=y;h.vx=h.vy=0;},flowAt:(i,b)=>(b?flowB:flow)[i],computeFlow,fell,setWood(v){wood=v;},regrowAt:i=>regrowAt[i],fireCell,findPath,legs:()=>path.filter(p=>p.end).map(p=>[p.i%COLS,(p.i/COLS)|0]),
     cellState(cx,cy){return inb(cx,cy)?state[I(cx,cy)]:-1;},walkable(cx,cy){return inb(cx,cy)&&moveOK(state[I(cx,cy)]);},
     rucheCells(){return ruches.map(r=>r.i);},ignite(i){ignitePatch({x:(i%COLS)*CELL+CELL/2,y:((i/COLS)|0)*CELL+CELL/2,r:.4});},
     // Minuteries de simulation en ticks (tests de durée : une durée data.js en secondes doit durer secToTick(s) ticks).
     timers(){return{tick,nightTick,dash:ab.dash,dashT:player.dashT,invuln,igniteT,lures:lures.map(l=>l.life),rclick:mouse.rclick,lclick:mouse.lclick};},secToTick,
     // Empreinte déterministe pour tools/baseline.json : seul le flux sim y entre (jamais fx).
-    snapshot(){const R=v=>Math.round(v*1e4)/1e4;let walls=0,trees=0,hash=2166136261;
+    snapshot(){const R=v=>Math.round(v*1e4)/1e4;let walls=0,trees=0,hash=2166136261; // (stateHash() reprend le même hachage)
       for(let i=0;i<state.length;i++){if(state[i]===WALL)walls++;if(state[i]===TREE)trees++;hash=(Math.imul(hash^state[i],16777619))>>>0;}
       return{seed:run&&run.seed,tick,nightTick,night:run&&run.night,clock:R(clock),lives,sap:R(sap),wood,kills,
         player:{x:R(player.x),y:R(player.y),vx:R(player.vx),vy:R(player.vy)},
@@ -1340,8 +1399,8 @@ const num=v=>(Math.round(v*10)/10).toString().replace('.',',');
 function cardRefresh(){const s=CF.game.cardState();if(!s)return;
   const set=(id,sel,rdy,cost,co)=>{const b=$('cc-'+id);b.className='cc'+(sel?' sel':'')+(rdy?' rdy':'');$('cc-'+id+'-c').textContent=cost==null?'':cost;$('cc-'+id+'-co').style.transform=`scaleY(${co||0})`;};
   set('wall',s.tool==='wall',s.wood>=s.cost.wall,s.cost.wall);set('axe',s.tool==='axe',true);set('reinforce',s.tool==='reinforce',s.sap>=s.cost.reinforce,s.cost.reinforce);
-  set('tower',s.tool==='tower',s.sap>=s.cost.tower&&s.towers<s.towerCap,s.cost.tower,s.towers>=s.towerCap?1:0);
-  set('ruche',s.tool==='ruche',s.sap>=s.cost.ruche&&s.ruches<s.rucheCap,s.cost.ruche,s.ruches>=s.rucheCap?1:0);
+  set('tower',s.tool==='tower',s.sap>=s.cost.tower,s.cost.tower); // V3-02 : plus de plafond
+  set('ruche',s.tool==='ruche',s.sap>=s.cost.ruche,s.cost.ruche);
   set('demolish',s.tool==='demolish',true);set('shop',s.shop,true);
   set('dash',false,s.dash<=0,null,s.dash);set('lure',false,!s.lureUsed,null,s.lureUsed?1:0);set('horn',false,s.grace,null,s.grace?0:1);
   $('sapNum').textContent=`${Math.floor(s.sap)} (+${num(s.income)}/s)`;$('woodNum').textContent=`${Math.floor(s.wood)}`;invRefresh(s);$('pt-night').textContent=`Nuit ${s.night} / ${s.nights}`;
