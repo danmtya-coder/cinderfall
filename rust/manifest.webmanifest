@@ -1,0 +1,19 @@
+{
+  "name": "CINDERFALL",
+  "short_name": "CINDERFALL",
+  "description": "Une petite lueur, une nuit qui n'en finit pas, et une meute de braises qui grandit. Bâtis, fortifie, tiens jusqu'à l'aube.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#050407",
+  "theme_color": "#050407",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

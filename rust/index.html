@@ -2,17 +2,46 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>CINDERFALL</title>
 <meta name="robots" content="noai, noimageai">
 <meta name="copyright" content="© 2026 danmtya-coder — tous droits réservés">
+<!-- ADR-028 : jouable au téléphone — installable (écran d'accueil), plein écran, en paysage -->
+<meta name="theme-color" content="#050407">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CINDERFALL">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #050407; }
-  canvas { display: block; width: 100%; height: 100%; outline: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #050407; overscroll-behavior: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  canvas { display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
+  /* téléphone tenu en portrait : la nuit attend (cf_portrait) et la page montre le geste à faire */
+  #turn { display: none; position: fixed; inset: 0; z-index: 2; background: #050407; color: #eafcff;
+    flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    font: 600 18px/1.3 system-ui, sans-serif; text-align: center; padding: 24px; }
+  #turn svg { width: 120px; height: 120px; }
+  @media (orientation: portrait) and (pointer: coarse) { #turn { display: flex; } }
+  @media (prefers-reduced-motion: no-preference) { #turn .ph { animation: turn 2.4s ease-in-out infinite; transform-origin: 60px 60px; } }
+  @keyframes turn { 0%, 25% { transform: rotate(0deg); } 55%, 100% { transform: rotate(-90deg); } }
 </style>
 </head>
 <body>
 <canvas id="glcanvas" tabindex="1"></canvas>
+<div id="turn" role="status">
+  <svg viewBox="0 0 120 120" aria-hidden="true"><g class="ph"><rect x="38" y="14" width="44" height="92" rx="9" fill="none" stroke="#8ff3ff" stroke-width="5"/><circle cx="60" cy="94" r="4" fill="#8ff3ff"/></g><path d="M96 70a38 38 0 0 1-20 30" fill="none" stroke="#ffb35a" stroke-width="5" stroke-linecap="round"/><path d="M70 96l7 5 1-9" fill="none" stroke="#ffb35a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div>Tourne ton téléphone pour jouer<br><small style="opacity:.7;font-weight:400">la nuit t'attend</small></div>
+</div>
+<script>
+/* ADR-028 : au-delà de 2 pixels physiques par pixel, l'image ne gagne rien de visible et le téléphone chauffe */
+(function () {
+  var d = window.devicePixelRatio || 1;
+  if (d > 2) try { Object.defineProperty(window, "devicePixelRatio", { get: function () { return 2; } }); } catch (e) {}
+})();
+</script>
 <script src="mq_js_bundle.js"></script>
 <script>
 /* CINDERFALL © 2026 danmtya-coder — tous droits réservés. ADR-012 : le jeu lit ici l'adresse qui le sert (0 = verrouillé). */
@@ -41,7 +70,29 @@ miniquad_add_plugin({ name: "cf_link", version: 1, register_plugin: function (o)
   o.env.cf_base_len = function () { return base.length; };
   o.env.cf_base_at = function (i) { return base.charCodeAt(i) | 0; };
 } });
+// ADR-028 : le jeu lit si le téléphone est tenu en portrait (la page le couvre et la nuit attend)
+miniquad_add_plugin({ name: "cf_view", version: 1, register_plugin: function (o) {
+  var q = window.matchMedia ? window.matchMedia("(orientation: portrait) and (pointer: coarse)") : null;
+  o.env.cf_portrait = function () { return q && q.matches ? 1 : 0; };
+} });
 load("cinderfall.wasm");
+// ADR-028 : au premier toucher, plein écran et paysage là où le navigateur le permet (Android) ; installé sur
+// l'écran d'accueil, le jeu s'ouvre déjà en plein écran (manifeste)
+(function () {
+  var standalone = window.matchMedia && window.matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches;
+  if (standalone) return;
+  function go() {
+    document.removeEventListener("touchend", go, true);
+    var el = document.documentElement;
+    if (document.fullscreenElement || !el.requestFullscreen) return;
+    el.requestFullscreen({ navigationUI: "hide" }).then(function () {
+      try { screen.orientation.lock("landscape").catch(function () {}); } catch (e) {}
+    }).catch(function () {});
+  }
+  document.addEventListener("touchend", go, true);
+  // un appui long n'ouvre pas le menu du navigateur
+  document.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+})();
 // « Partager » (écran de fin) : le jeu dépose un texte court (graine, score) dans le presse-papiers de miniquad ; on le
 // recopie aussitôt dans celui du navigateur (le clic ou la touche vient d'avoir lieu : c'est bien un geste du joueur).
 (function () {
@@ -50,7 +101,10 @@ load("cinderfall.wasm");
     var t = window.clipboard;
     if (t && t !== last) {
       last = t;
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).catch(function () {});
+      var copy = function () { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).catch(function () {}); };
+      // ADR-028 : sur un téléphone, la feuille de partage du système (messages, applications) ; sinon le presse-papiers
+      var phone = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+      if (phone && navigator.share) navigator.share({ text: t }).catch(copy); else copy();
     }
   }, 150);
 })();
