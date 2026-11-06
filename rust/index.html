@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>CINDERFALL</title>
+<title>SYLVELIGHT</title>
 <meta name="robots" content="noai, noimageai">
 <meta name="copyright" content="© 2026 danmtya-coder — tous droits réservés">
 <!-- ADR-028 : jouable au téléphone — installable (écran d'accueil), plein écran, en paysage -->
@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CINDERFALL">
+<meta name="apple-mobile-web-app-title" content="SYLVELIGHT">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -27,6 +27,26 @@
   @media (orientation: portrait) and (pointer: coarse) { #turn { display: flex; } }
   @media (prefers-reduced-motion: no-preference) { #turn .ph { animation: turn 2.4s ease-in-out infinite; transform-origin: 60px 60px; } }
   @keyframes turn { 0%, 25% { transform: rotate(0deg); } 55%, 100% { transform: rotate(-90deg); } }
+  /* FT-02 : signe de vie dès le HTML — Cindre et une ligne pendant le téléchargement du jeu (avant toute image du jeu) */
+  #eveil { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 12px; background: #050407; color: #bff4ff; font: 400 17px/1.4 system-ui, sans-serif;
+    pointer-events: none; }
+  #eveil.off { display: none; }
+  /* FT-05 : « La Sylve s'est figée » — une erreur du jeu montre un écran en français, jamais une image figée */
+  #fige { display: none; position: fixed; inset: 0; z-index: 3; background: #050407; color: #f4eee2;
+    flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    font: 400 17px/1.4 system-ui, sans-serif; text-align: center; padding: 24px; }
+  #fige.on { display: flex; }
+  /* FT-09 : rendu sans accélération graphique — une note qui ne bloque rien, en bas, refermable */
+  #lent { display: none; position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 2; max-width: min(560px, calc(100% - 32px));
+    background: #f6eedd; color: #3f2614; border-radius: 10px; padding: 10px 14px; font: 400 15px/1.35 system-ui, sans-serif;
+    box-shadow: 0 2px 10px rgba(0,0,0,.4); align-items: center; gap: 12px; }
+  #lent.on { display: flex; }
+  #lent button { font: 600 15px system-ui, sans-serif; min-height: 44px; padding: 0 14px; border-radius: 8px; border: 2px solid #0b5f6e; background: #fff; color: #0b5f6e; cursor: pointer; }
+  #fige h1 { margin: 0; font-size: 24px; color: #ffe0a0; }
+  #fige code { font-size: 15px; letter-spacing: 1px; color: #8ff3ff; }
+  #fige button { font: 600 17px system-ui, sans-serif; min-height: 44px; padding: 0 20px; margin: 4px; border-radius: 10px;
+    border: 2px solid #8ff3ff; background: #0e1b22; color: #eafcff; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -35,6 +55,92 @@
   <svg viewBox="0 0 120 120" aria-hidden="true"><g class="ph"><rect x="38" y="14" width="44" height="92" rx="9" fill="none" stroke="#8ff3ff" stroke-width="5"/><circle cx="60" cy="94" r="4" fill="#8ff3ff"/></g><path d="M96 70a38 38 0 0 1-20 30" fill="none" stroke="#ffb35a" stroke-width="5" stroke-linecap="round"/><path d="M70 96l7 5 1-9" fill="none" stroke="#ffb35a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
   <div>Tourne ton téléphone pour jouer<br><small style="opacity:.7;font-weight:400">la nuit t'attend</small></div>
 </div>
+<div id="eveil" role="status">
+  <svg viewBox="0 0 120 120" width="96" height="96" aria-hidden="true"><circle cx="60" cy="60" r="44" fill="#8ff3ff" opacity=".08"/><circle cx="60" cy="60" r="28" fill="#8ff3ff" opacity=".14"/><circle cx="60" cy="60" r="12" fill="#e6fdff"/></svg>
+  <div>La Sylve s'éveille…</div>
+</div>
+<div id="lent" role="status"><span>Ton navigateur dessine sans accélération graphique : le jeu risque d'être lent. Tu peux l'activer dans ses réglages (« accélération matérielle »).</span><button id="lent-ok" type="button">Compris</button></div>
+<div id="fige" role="alert">
+  <svg viewBox="0 0 120 120" width="110" height="110" aria-hidden="true"><circle cx="60" cy="60" r="38" fill="#8ff3ff" opacity=".12"/><circle cx="60" cy="60" r="22" fill="#cdfbff"/><path d="M48 60q5 5 10 0M62 60q5 5 10 0" fill="none" stroke="#2a4c55" stroke-width="3" stroke-linecap="round"/><text x="88" y="34" fill="#ffe0a0" font-size="16" font-family="system-ui">z</text></svg>
+  <h1>La Sylve s'est figée</h1>
+  <div id="fige-msg">Ce n'est pas ta faute. Recharge la page : ton Carnet et tes réglages sont gardés.</div>
+  <div>Si ça recommence, ce code aide à trouver la cause : <code id="fige-code"></code></div>
+  <div><button id="fige-re" type="button">Recharger</button><button id="fige-cp" type="button">Copier le code</button></div>
+</div>
+<script>
+/* FT-05 : l'écran « La Sylve s'est figée ». Il apparaît si WebAssembly ou WebGL manque, si le chargeur lance une alerte,
+   ou si une erreur de la page (ou une panique du jeu) est suivie de 2 s sans image alors que la page est visible.
+   Le code ne porte aucune donnée personnelle : la cause, une empreinte du message sans chiffres ni chemins, la famille
+   du navigateur. */
+(function () {
+  function famille(ua) { return /Edg\//.test(ua) ? "E" : /Firefox\//.test(ua) ? "F" : /Chrome\//.test(ua) ? "C" : /Safari\//.test(ua) ? "S" : "X"; }
+  function empreinte(m) {
+    var t = String(m || "").replace(/[A-Za-z]:[\\\/][^\s)]*|\/[^\s)]*/g, "").replace(/[0-9]+/g, "").slice(0, 200), h = 2166136261;
+    for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return ("000000" + (h % 16777216).toString(16)).slice(-6);
+  }
+  window.cfCode = function (cause, msg, ua) { return cause + "-" + empreinte(msg) + "-" + famille(ua || ""); };
+  var shown = false;
+  window.cfFige = function (cause, msg) {
+    if (shown) return; shown = true;
+    var code = window.cfCode(cause, msg, navigator.userAgent);
+    var el = document.getElementById("fige");
+    if (cause === "W") document.getElementById("fige-msg").textContent = "Ce navigateur ne sait pas faire tourner le jeu (WebAssembly). Essaie un navigateur récent.";
+    if (cause === "L") {
+      document.querySelector("#fige h1").textContent = "La Sylve s'est assoupie";
+      document.getElementById("fige-msg").textContent = "Le téléphone a repris la mémoire graphique. Touche pour la réveiller : ton Carnet et tes réglages sont gardés.";
+      document.getElementById("fige-re").textContent = "Réveiller";
+      el.onclick = function () { location.reload(); };
+    }
+    if (cause === "G") document.getElementById("fige-msg").textContent = "Le jeu a besoin de l'accélération graphique (WebGL). Active-la dans les réglages du navigateur, ou essaie un autre navigateur.";
+    document.getElementById("fige-code").textContent = code;
+    document.getElementById("fige-re").onclick = function () { location.reload(); };
+    document.getElementById("fige-cp").onclick = function () {
+      try { navigator.clipboard.writeText(code).catch(function () {}); } catch (e) {}
+    };
+    el.className = "on";
+  };
+  // FT-10 : le navigateur peut reprendre le contexte WebGL (téléphone en veille, mémoire graphique) ; sans ce voile,
+  // l'image resterait figée. Le geste recharge la page (le profil est intact).
+  var gl = document.getElementById("glcanvas");
+  if (gl) gl.addEventListener("webglcontextlost", function (e) { e.preventDefault(); window.cfFige("L", "contexte"); }, false);
+  // le chargeur prévient par alert() (WebGL incomplet, WebAssembly refusé) : on montre l'écran à la place
+  window.alert = function (m) { window.cfFige("A", m); };
+  if (typeof WebAssembly !== "object") { window.cfFige("W", ""); return; }
+  try { var c = document.createElement("canvas"); if (!(c.getContext("webgl") || c.getContext("experimental-webgl"))) { window.cfFige("G", ""); return; } } catch (e) {}
+  // FT-09 : WebGL n'existe ici qu'en rendu logiciel (le navigateur refuse un contexte « sans grosse perte de
+  // performance ») : on le dit, sans bloquer. Aucune information sur la carte graphique n'est lue ni envoyée.
+  try {
+    var c2 = document.createElement("canvas");
+    if (!c2.getContext("webgl", { failIfMajorPerformanceCaveat: true })) {
+      var lent = document.getElementById("lent");
+      lent.className = "on";
+      document.getElementById("lent-ok").onclick = function () { lent.className = ""; };
+    }
+  } catch (e) {}
+  // une erreur ne compte que si les images s'arrêtent ensuite (une extension du navigateur ne doit pas couvrir la partie)
+  var last = 0, raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = function (cb) { return raf(function (t) { last = performance.now(); cb(t); eveil(); }); };
+  // FT-02 : la première image du jeu remplace l'écran d'éveil
+  var ev = document.getElementById("eveil");
+  function eveil() { if (ev) { ev.className = "off"; ev = null; } }
+  function suspect(cause, msg) {
+    var t0 = performance.now();
+    setTimeout(function () { if (document.visibilityState === "visible" && last < t0 + 50) window.cfFige(cause, msg); }, 2000);
+  }
+  window.addEventListener("error", function (e) {
+    var f = String(e.filename || "");
+    if (!f || f.indexOf(location.origin) === 0) suspect("E", e.message);
+  });
+  window.addEventListener("unhandledrejection", function (e) { suspect("R", e.reason && (e.reason.message || e.reason)); });
+  var ce = console.error;
+  console.error = function () {
+    var m = Array.prototype.join.call(arguments, " ");
+    if (/panicked at|RuntimeError|unreachable|CompileError|LinkError/.test(m)) suspect("P", m);
+    return ce.apply(console, arguments);
+  };
+})();
+</script>
 <script>
 /* ADR-028 : au-delà de 2 pixels physiques par pixel, l'image ne gagne rien de visible et le téléphone chauffe */
 (function () {
@@ -42,9 +148,9 @@
   if (d > 2) try { Object.defineProperty(window, "devicePixelRatio", { get: function () { return 2; } }); } catch (e) {}
 })();
 </script>
-<script src="mq_js_bundle.js"></script>
+<script src="mq_js_bundle.js?v=555615a0b21d"></script>
 <script>
-/* CINDERFALL © 2026 danmtya-coder — tous droits réservés. ADR-012 : le jeu lit ici l'adresse qui le sert (0 = verrouillé). */
+/* SYLVELIGHT © 2026 danmtya-coder — tous droits réservés. ADR-012 : le jeu lit ici l'adresse qui le sert (0 = verrouillé). */
 miniquad_add_plugin({ name: "cf_host", version: 1, register_plugin: function (o) {
   var h = String(location.hostname || "").toLowerCase();
   o.env.cf_pr = function () { return /^https?:$/.test(location.protocol) ? 1 : 2; };
@@ -59,6 +165,8 @@ miniquad_add_plugin({ name: "cf_store", version: 1, register_plugin: function (o
   o.env.cf_sv_clear = function () { out = ""; };
   o.env.cf_sv_push = function (c) { out += String.fromCharCode(c); };
   o.env.cf_sv_end = function () { try { localStorage.setItem(K, out); return 1; } catch (e) { return 0; } };
+  // FT-11 : un profil illisible est gardé sous sa propre clé avant toute écriture (la première copie n'est jamais écrasée)
+  o.env.cf_sv_bak = function () { try { var t = localStorage.getItem(K); if (!t || localStorage.getItem(K + "_abime") !== null) return 0; localStorage.setItem(K + "_abime", t); return 1; } catch (e) { return 0; } };
 } });
 // ADR-017 : le jour UTC (Nuit du jour), la requête du lien et l'adresse de base pour écrire les liens
 miniquad_add_plugin({ name: "cf_link", version: 1, register_plugin: function (o) {
@@ -74,8 +182,20 @@ miniquad_add_plugin({ name: "cf_link", version: 1, register_plugin: function (o)
 miniquad_add_plugin({ name: "cf_view", version: 1, register_plugin: function (o) {
   var q = window.matchMedia ? window.matchMedia("(orientation: portrait) and (pointer: coarse)") : null;
   o.env.cf_portrait = function () { return q && q.matches ? 1 : 0; };
+  // A5 : au premier lancement, le jeu suit la préférence du système (réduire les animations)
+  o.env.cf_reduce = function () { try { return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 0; } catch (e) { return 0; } };
+  // chantier 4 (D-13) : onglet caché ou fenêtre sans focus → la nuit se met en pause voilée. La page retient le passage
+  // (« vu ») jusqu'à la lecture suivante : un onglet caché puis revenu entre deux images compte aussi. Le retour du
+  // focus ne reprend rien : le joueur reprend quand il est prêt.
+  var flou = false, vu = false;
+  try {
+    window.addEventListener("blur", function () { flou = true; vu = true; });
+    window.addEventListener("focus", function () { flou = false; });
+    document.addEventListener("visibilitychange", function () { if (document.hidden) vu = true; });
+  } catch (e) {}
+  o.env.cf_hidden = function () { var r = false; try { r = !!document.hidden || flou || vu; } catch (e) {} vu = false; return r ? 1 : 0; };
 } });
-load("cinderfall.wasm");
+load("cinderfall.wasm?v=555615a0b21d");
 // ADR-028 : au premier toucher, plein écran et paysage là où le navigateur le permet (Android) ; installé sur
 // l'écran d'accueil, le jeu s'ouvre déjà en plein écran (manifeste)
 (function () {
