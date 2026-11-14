@@ -1,1 +1,1 @@
-CINDERFALL — version jouable compilée ; le code source n'est pas public. Voir LICENSE.
+SYLVELIGHT — version jouable compilée ; le code source n'est pas public. Voir LICENSE.
