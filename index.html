@@ -86,27 +86,30 @@
 <body>
 <canvas id="glcanvas" tabindex="1"></canvas>
 <div id="sz" aria-hidden="true"></div>
+<!-- I18N-01 : les textes de la page dans chaque langue (clés page.* de rust/assets/textes/<langue>.json), inscrits par
+     tools/build-rust-web.js à la place du repère. Sans eux, la page garde son français (écrit ci-dessous, le même que la table). -->
+<script id="cf-textes" type="application/json">{"fr":{"page.tourne":"Tourne ton téléphone pour jouer","page.tourne.attente":"la nuit t'attend","page.eveil":"La Sylve s'éveille…","page.lent":"Ton navigateur dessine sans accélération graphique : le jeu risque d'être lent. Tu peux l'activer dans ses réglages (« accélération matérielle »).","page.lent.ok":"Compris","page.cadre":"Ce jeu ne se joue pas encastré dans un autre site.","page.cadre.lien":"Ouvrir la version officielle","page.droits":"© 2026 danmtya-coder — tous droits réservés","page.copie":"Copie non autorisée : ce jeu est une œuvre protégée.","page.copie.lien":"Joue à la version officielle","page.copie.code":"Tu joues déjà sur la version officielle ? Ce code nous aide à comprendre :","page.copier_code":"Copier le code","page.fige.titre":"La Sylve s'est figée","page.fige.msg":"Ce n'est pas ta faute. Recharge la page : ton Carnet et tes réglages sont gardés.","page.fige.code":"Si ça recommence, ce code aide à trouver la cause :","page.fige.recharger":"Recharger","page.fige.w":"Ce navigateur ne sait pas faire tourner le jeu (WebAssembly). Essaie un navigateur récent.","page.fige.l.titre":"La Sylve s'est assoupie","page.fige.l.msg":"Le téléphone a repris la mémoire graphique. Touche pour la réveiller : ton Carnet et tes réglages sont gardés.","page.fige.l.bouton":"Réveiller","page.fige.g":"Le jeu a besoin de l'accélération graphique (WebGL). Active-la dans les réglages du navigateur, ou essaie un autre navigateur.","page.fige.n":"Le jeu n'a pas pu arriver jusqu'ici. Vérifie ta connexion, puis recharge : ton Carnet et tes réglages sont gardés.","page.manifeste.description":"Une petite lueur, une nuit qui n'en finit pas, et une meute de braises qui grandit. Bâtis, fortifie, tiens jusqu'à l'aube."},"en":{"page.tourne":"Turn your phone to play","page.tourne.attente":"the night is waiting for you","page.eveil":"The Sylve is waking up…","page.lent":"Your browser draws without graphics acceleration: the game may be slow. You can turn it on in its settings (“hardware acceleration”).","page.lent.ok":"Got it","page.cadre":"This game can't be played inside another website.","page.cadre.lien":"Open the official version","page.droits":"© 2026 danmtya-coder — all rights reserved","page.copie":"Unauthorized copy: this game is a protected work.","page.copie.lien":"Play the official version","page.copie.code":"Already playing the official version? This code helps us understand:","page.copier_code":"Copy the code","page.fige.titre":"The Sylve has frozen","page.fige.msg":"It's not your fault. Reload the page: your Field Notes and settings are kept.","page.fige.code":"If it happens again, this code helps find the cause:","page.fige.recharger":"Reload","page.fige.w":"This browser can't run the game (WebAssembly). Try a recent browser.","page.fige.l.titre":"The Sylve has dozed off","page.fige.l.msg":"The phone took back the graphics memory. Tap to wake it up: your Field Notes and settings are kept.","page.fige.l.bouton":"Wake up","page.fige.g":"The game needs graphics acceleration (WebGL). Turn it on in the browser settings, or try another browser.","page.fige.n":"The game could not get here. Check your connection, then reload: your Field Notes and settings are kept.","page.manifeste.description":"A small Glimmer, a night that never ends, and a pack of Embers that keeps growing. Build, fortify, hold till dawn."}}</script>
 <div id="turn" role="status">
   <svg viewBox="0 0 120 120" aria-hidden="true"><g class="ph"><rect x="38" y="14" width="44" height="92" rx="9" fill="none" stroke="#8ff3ff" stroke-width="5"/><circle cx="60" cy="94" r="4" fill="#8ff3ff"/></g><path d="M96 70a38 38 0 0 1-20 30" fill="none" stroke="#ffb35a" stroke-width="5" stroke-linecap="round"/><path d="M70 96l7 5 1-9" fill="none" stroke="#ffb35a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  <div>Tourne ton téléphone pour jouer<br><small style="opacity:.7;font-weight:400">la nuit t'attend</small></div>
+  <div><span data-t="page.tourne">Tourne ton téléphone pour jouer</span><br><small style="opacity:.7;font-weight:400" data-t="page.tourne.attente">la nuit t'attend</small></div>
 </div>
 <div id="eveil" role="status">
   <svg viewBox="0 0 120 120" width="96" height="96" aria-hidden="true"><circle cx="60" cy="60" r="44" fill="#8ff3ff" opacity=".08"/><circle cx="60" cy="60" r="28" fill="#8ff3ff" opacity=".14"/><circle cx="60" cy="60" r="12" fill="#e6fdff"/></svg>
-  <div>La Sylve s'éveille…</div>
+  <div data-t="page.eveil">La Sylve s'éveille…</div>
 </div>
-<div id="lent" role="status"><span>Ton navigateur dessine sans accélération graphique : le jeu risque d'être lent. Tu peux l'activer dans ses réglages (« accélération matérielle »).</span><button id="lent-ok" type="button">Compris</button></div>
+<div id="lent" role="status"><span data-t="page.lent">Ton navigateur dessine sans accélération graphique : le jeu risque d'être lent. Tu peux l'activer dans ses réglages (« accélération matérielle »).</span><button id="lent-ok" type="button" data-t="page.lent.ok">Compris</button></div>
 <div id="cadre" role="alert">
   <h1>SYLVELIGHT</h1>
-  <div>Ce jeu ne se joue pas encastré dans un autre site.</div>
-  <div><a href="https://danmtya-coder.github.io/cinderfall/" target="_blank" rel="noopener">Ouvrir la version officielle</a></div>
-  <div style="opacity:.7;font-size:14px">© 2026 danmtya-coder — tous droits réservés</div>
+  <div data-t="page.cadre">Ce jeu ne se joue pas encastré dans un autre site.</div>
+  <div><a href="https://danmtya-coder.github.io/cinderfall/" target="_blank" rel="noopener" data-t="page.cadre.lien">Ouvrir la version officielle</a></div>
+  <div style="opacity:.7;font-size:14px" data-t="page.droits">© 2026 danmtya-coder — tous droits réservés</div>
 </div>
 <div id="copie" role="alert">
   <h1>SYLVELIGHT</h1>
-  <div>Copie non autorisée : ce jeu est une œuvre protégée.</div>
-  <div><a href="https://danmtya-coder.github.io/cinderfall/">Joue à la version officielle</a></div>
-  <div>Tu joues déjà sur la version officielle ? Ce code nous aide à comprendre : <code id="copie-code"></code><button id="copie-cp" type="button">Copier le code</button></div>
-  <div style="opacity:.7;font-size:14px">© 2026 danmtya-coder — tous droits réservés</div>
+  <div data-t="page.copie">Copie non autorisée : ce jeu est une œuvre protégée.</div>
+  <div><a href="https://danmtya-coder.github.io/cinderfall/" data-t="page.copie.lien">Joue à la version officielle</a></div>
+  <div><span data-t="page.copie.code">Tu joues déjà sur la version officielle ? Ce code nous aide à comprendre :</span> <code id="copie-code"></code><button id="copie-cp" type="button" data-t="page.copier_code">Copier le code</button></div>
+  <div style="opacity:.7;font-size:14px" data-t="page.droits">© 2026 danmtya-coder — tous droits réservés</div>
 </div>
 <div id="voile" role="dialog" aria-modal="true" aria-labelledby="voile-titre">
   <div class="boite">
@@ -118,12 +121,43 @@
 </div>
 <div id="fige" role="alert">
   <svg viewBox="0 0 120 120" width="110" height="110" aria-hidden="true"><circle cx="60" cy="60" r="38" fill="#8ff3ff" opacity=".12"/><circle cx="60" cy="60" r="22" fill="#cdfbff"/><path d="M48 60q5 5 10 0M62 60q5 5 10 0" fill="none" stroke="#2a4c55" stroke-width="3" stroke-linecap="round"/><text x="88" y="34" fill="#ffe0a0" font-size="16" font-family="system-ui">z</text></svg>
-  <h1>La Sylve s'est figée</h1>
-  <div id="fige-msg">Ce n'est pas ta faute. Recharge la page : ton Carnet et tes réglages sont gardés.</div>
-  <div>Si ça recommence, ce code aide à trouver la cause : <code id="fige-code"></code></div>
-  <div><button id="fige-re" type="button">Recharger</button><button id="fige-cp" type="button">Copier le code</button></div>
+  <h1 data-t="page.fige.titre">La Sylve s'est figée</h1>
+  <div id="fige-msg" data-t="page.fige.msg">Ce n'est pas ta faute. Recharge la page : ton Carnet et tes réglages sont gardés.</div>
+  <div><span data-t="page.fige.code">Si ça recommence, ce code aide à trouver la cause :</span> <code id="fige-code"></code></div>
+  <div><button id="fige-re" type="button" data-t="page.fige.recharger">Recharger</button><button id="fige-cp" type="button" data-t="page.copier_code">Copier le code</button></div>
 </div>
 <script>
+/* I18N-01 : la langue de la page. Avant le jeu : `?lang=` du lien, sinon la langue du navigateur (français si elle
+   commence par « fr », anglais sinon) ; ensuite, le jeu dit la sienne (réglage du profil) par cf_page_langue. Chaque
+   élément marqué data-t prend le texte de sa clé ; un texte posé par le script passe par T(clé, français). */
+(function () {
+  var D = {};
+  try { D = JSON.parse(document.getElementById("cf-textes").textContent) || {}; } catch (e) { D = {}; }
+  var L = "fr";
+  function depart() {
+    var q = "", n = "";
+    try { q = String(location.search || ""); } catch (e) {}
+    var m = /[?&]lang=([a-zA-Z_-]+)/.exec(q);
+    if (m) { var c = m[1].toLowerCase().split(/[-_]/)[0]; if (c === "fr" || c === "en") return c; }
+    try { n = String(navigator.language || ""); } catch (e) {}
+    return /^fr/i.test(n.trim()) ? "fr" : "en";
+  }
+  window.T = function (cle, francais) { var t = (D[L] || {})[cle]; if (typeof t !== "string") t = (D.fr || {})[cle]; return typeof t === "string" ? t : (francais || ""); };
+  window.cfDire = function (el, cle, francais) { if (!el) return; try { if (el.setAttribute) el.setAttribute("data-t", cle); } catch (e) {} el.textContent = window.T(cle, francais); };
+  window.cfLangue = function (code) {
+    L = code === "en" ? "en" : "fr";
+    try {
+      document.documentElement.lang = L;
+      var els = document.querySelectorAll("[data-t]");
+      for (var i = 0; i < els.length; i++) { var t = window.T(els[i].getAttribute("data-t"), ""); if (t) els[i].textContent = t; }
+      // le manifeste de la langue (nom, description) : celui qu'un « Ajouter à l'écran d'accueil » lira
+      var mf = document.querySelector('link[rel="manifest"]');
+      if (mf) mf.setAttribute("href", L === "en" ? "manifest-en.webmanifest" : "manifest.webmanifest");
+    } catch (e) {}
+  };
+  window.cfLangueCourante = function () { return L; };
+  window.cfLangue(depart());
+})();
 /* FT-05 : l'écran « La Sylve s'est figée ». Il apparaît si WebAssembly ou WebGL manque, si le chargeur lance une alerte,
    ou si une erreur de la page (ou une panique du jeu) est suivie de 2 s sans image alors que la page est visible.
    Le code ne porte aucune donnée personnelle : la cause, une empreinte du message sans chiffres ni chemins, la famille
@@ -141,15 +175,16 @@
     if (shown) return; shown = true;
     var code = window.cfCode(cause, msg, navigator.userAgent);
     var el = document.getElementById("fige");
-    if (cause === "W") document.getElementById("fige-msg").textContent = "Ce navigateur ne sait pas faire tourner le jeu (WebAssembly). Essaie un navigateur récent.";
+    var dire = window.cfDire || function (e, c, f) { if (e) e.textContent = f; };
+    if (cause === "W") dire(document.getElementById("fige-msg"), "page.fige.w", "Ce navigateur ne sait pas faire tourner le jeu (WebAssembly). Essaie un navigateur récent.");
     if (cause === "L") {
-      document.querySelector("#fige h1").textContent = "La Sylve s'est assoupie";
-      document.getElementById("fige-msg").textContent = "Le téléphone a repris la mémoire graphique. Touche pour la réveiller : ton Carnet et tes réglages sont gardés.";
-      document.getElementById("fige-re").textContent = "Réveiller";
+      dire(document.querySelector("#fige h1"), "page.fige.l.titre", "La Sylve s'est assoupie");
+      dire(document.getElementById("fige-msg"), "page.fige.l.msg", "Le téléphone a repris la mémoire graphique. Touche pour la réveiller : ton Carnet et tes réglages sont gardés.");
+      dire(document.getElementById("fige-re"), "page.fige.l.bouton", "Réveiller");
       el.onclick = function () { location.reload(); };
     }
-    if (cause === "G") document.getElementById("fige-msg").textContent = "Le jeu a besoin de l'accélération graphique (WebGL). Active-la dans les réglages du navigateur, ou essaie un autre navigateur.";
-    if (cause === "N") document.getElementById("fige-msg").textContent = "Le jeu n'a pas pu arriver jusqu'ici. Vérifie ta connexion, puis recharge : ton Carnet et tes réglages sont gardés.";
+    if (cause === "G") dire(document.getElementById("fige-msg"), "page.fige.g", "Le jeu a besoin de l'accélération graphique (WebGL). Active-la dans les réglages du navigateur, ou essaie un autre navigateur.");
+    if (cause === "N") dire(document.getElementById("fige-msg"), "page.fige.n", "Le jeu n'a pas pu arriver jusqu'ici. Vérifie ta connexion, puis recharge : ton Carnet et tes réglages sont gardés.");
     document.getElementById("fige-code").textContent = code;
     document.getElementById("fige-re").onclick = function () { location.reload(); };
     document.getElementById("fige-cp").onclick = function () {
@@ -222,7 +257,7 @@
   } catch (e) {}
 })();
 </script>
-<script src="mq_js_bundle.js?v=5e4cd677c28e"></script>
+<script src="mq_js_bundle.js?v=6861f6389dba"></script>
 <script>
 /* SYLVELIGHT © 2026 danmtya-coder — tous droits réservés. ADR-012 : le jeu lit ici l'adresse qui le sert (0 = verrouillé). */
 miniquad_add_plugin({ name: "cf_host", version: 1, register_plugin: function (o) {
@@ -348,6 +383,27 @@ miniquad_add_plugin({ name: "cf_link", version: 1, register_plugin: function (o)
   o.env.cf_base_len = function () { return base.length; };
   o.env.cf_base_at = function (i) { return base.charCodeAt(i) | 0; };
 } });
+// I18N-01 : la langue — le jeu lit celle du navigateur (au premier lancement), puis dit à la page celle qu'il parle
+// (1 français, 2 anglais) : ses voiles et son manifeste la suivent
+miniquad_add_plugin({ name: "cf_lang", version: 1, register_plugin: function (o) {
+  var n = "";
+  try { n = String(navigator.language || "").slice(0, 35); } catch (e) {}
+  o.env.cf_lang_len = function () { return n.length; };
+  o.env.cf_lang_at = function (i) { return n.charCodeAt(i) | 0; };
+  o.env.cf_page_langue = function (cran) { if (window.cfLangue) window.cfLangue(cran === 2 ? "en" : "fr"); };
+} });
+// CMD-01 (ADR-047) : la disposition du clavier, pour nommer les touches (le jeu les lit par position) — 0 inconnue (la
+// langue décide), 1 QWERTY, 2 AZERTY, 3 QWERTZ. navigator.keyboard.getLayoutMap n'existe pas partout : sans lui, 0.
+miniquad_add_plugin({ name: "cf_clavier", version: 1, register_plugin: function (o) {
+  var d = 0;
+  try {
+    if (navigator.keyboard && navigator.keyboard.getLayoutMap) navigator.keyboard.getLayoutMap().then(function (m) {
+      var q = m.get("KeyQ"), y = m.get("KeyY");
+      d = q === "a" ? 2 : y === "z" ? 3 : q === "q" ? 1 : 0;
+    }).catch(function () {});
+  } catch (e) {}
+  o.env.cf_clavier = function () { return d; };
+} });
 // ADR-028 : le jeu lit si le téléphone est tenu en portrait (la page le couvre et la nuit attend)
 miniquad_add_plugin({ name: "cf_view", version: 1, register_plugin: function (o) {
   var q = window.matchMedia ? window.matchMedia("(orientation: portrait) and (pointer: coarse)") : null;
@@ -399,9 +455,9 @@ miniquad_add_plugin({ name: "cf_view", version: 1, register_plugin: function (o)
   var ui = null;
   o.env.cf_ui_vider = function (x, y, w, h) { ui = { zone: [x, y, w, h], boutons: [] }; };
   o.env.cf_ui_bouton = function (x, y, w, h) { if (ui) ui.boutons.push([x, y, w, h]); };
-  o.env.cf_ui_clore = function (e) { if (ui) { ui.ecran = ["", "titre", "nuit", "voile", "fin"][e] || ""; window.__cf_ui = ui; } };
+  o.env.cf_ui_clore = function (e) { if (ui) { ui.ecran = ["", "titre", "nuit", "voile", "fin", "touches"][e] || ""; window.__cf_ui = ui; } };
 } });
-load("cinderfall.wasm?v=5e4cd677c28e");
+load("cinderfall.wasm?v=6861f6389dba");
 // WEB-01 (ADR-036) : hors ligne et installable — le service worker garde le jeu après une première visite (sw.js).
 // Seulement en http(s) ; un refus du navigateur ne gêne pas la partie.
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) window.addEventListener("load", function () {
