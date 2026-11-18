@@ -5,7 +5,7 @@
      jamais un binaire d'une version avec la page d'une autre ;
    - rien n'est mis en cache hors de l'installation, et l'installation échoue en entier si un seul fichier manque :
      un chargement raté n'est jamais gardé. */
-const V = 'sylve-9baa459c72a9', ASSETS = ["cinderfall.wasm?v=6861f6389dba","icon-180.png","icon-192.png","icon-512.png","icon.svg","./","manifest-en.webmanifest","manifest.webmanifest","mq_js_bundle.js?v=6861f6389dba","rust/"];
+const V = 'sylve-63f6c987f0e9', ASSETS = ["cinderfall.wasm?v=57082514dba0","icon-180.png","icon-192.png","icon-512.png","icon.svg","./","manifest-en.webmanifest","manifest.webmanifest","mq_js_bundle.js?v=57082514dba0","rust/"];
 const ATTENTE_MS = 4000; // réseau muet : au-delà, la page gardée en cache démarre le jeu
 const RACINE = new URL('./', location).pathname;
 // les pages du site : la racine (le jeu) et /rust/ (l'ancienne adresse, qui renvoie à la racine avec sa requête)

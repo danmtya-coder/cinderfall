@@ -257,7 +257,7 @@
   } catch (e) {}
 })();
 </script>
-<script src="mq_js_bundle.js?v=6861f6389dba"></script>
+<script src="mq_js_bundle.js?v=57082514dba0"></script>
 <script>
 /* SYLVELIGHT © 2026 danmtya-coder — tous droits réservés. ADR-012 : le jeu lit ici l'adresse qui le sert (0 = verrouillé). */
 miniquad_add_plugin({ name: "cf_host", version: 1, register_plugin: function (o) {
@@ -455,9 +455,11 @@ miniquad_add_plugin({ name: "cf_view", version: 1, register_plugin: function (o)
   var ui = null;
   o.env.cf_ui_vider = function (x, y, w, h) { ui = { zone: [x, y, w, h], boutons: [] }; };
   o.env.cf_ui_bouton = function (x, y, w, h) { if (ui) ui.boutons.push([x, y, w, h]); };
+  // CMD-02 : les ouvrages de la partie (Ruches, tourelles, tourelles étouffées), pour la fumée : window.__cf_ouvrages
+  o.env.cf_ouvrages = function (r, t, e) { window.__cf_ouvrages = { ruches: r, tourelles: t, etouffees: e }; };
   o.env.cf_ui_clore = function (e) { if (ui) { ui.ecran = ["", "titre", "nuit", "voile", "fin", "touches"][e] || ""; window.__cf_ui = ui; } };
 } });
-load("cinderfall.wasm?v=6861f6389dba");
+load("cinderfall.wasm?v=57082514dba0");
 // WEB-01 (ADR-036) : hors ligne et installable — le service worker garde le jeu après une première visite (sw.js).
 // Seulement en http(s) ; un refus du navigateur ne gêne pas la partie.
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) window.addEventListener("load", function () {
