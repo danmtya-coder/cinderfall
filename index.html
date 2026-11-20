@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>SYLVELIGHT</title>
 <meta name="robots" content="noai, noimageai">
+<!-- PART-01 (ADR-051) : l'aperçu d'un lien collé dans une messagerie. Anglais puis français (les deux langues de la
+     campagne, docs/marche/CAMPAGNE.md), écrits avec les clés page.apercu.* des deux tables (tools/test.js le vérifie).
+     L'image (1200 × 630) est dessinée par le jeu (tools/apercu.js la régénère) ; le service worker la laisse hors de
+     son cache. -->
+<meta name="description" content="A small light builds a maze to hold out until dawn. Plays in your browser, no account. · Une petite lumière bâtit un labyrinthe pour tenir jusqu'à l'aube. Dans ton navigateur, sans compte.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SYLVELIGHT">
+<meta property="og:title" content="SYLVELIGHT — Hold till dawn · Tiens jusqu'à l'aube">
+<meta property="og:description" content="A small light builds a maze to hold out until dawn. Plays in your browser, no account. · Une petite lumière bâtit un labyrinthe pour tenir jusqu'à l'aube. Dans ton navigateur, sans compte.">
+<meta property="og:url" content="https://danmtya-coder.github.io/cinderfall/">
+<meta property="og:image" content="https://danmtya-coder.github.io/cinderfall/apercu.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="SYLVELIGHT — Hold till dawn · Tiens jusqu'à l'aube">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="copyright" content="© 2026 danmtya-coder — tous droits réservés">
 <!-- ADR-028 : jouable au téléphone — installable (écran d'accueil), plein écran, en paysage -->
 <meta name="theme-color" content="#050407">
@@ -88,7 +103,7 @@
 <div id="sz" aria-hidden="true"></div>
 <!-- I18N-01 : les textes de la page dans chaque langue (clés page.* de rust/assets/textes/<langue>.json), inscrits par
      tools/build-rust-web.js à la place du repère. Sans eux, la page garde son français (écrit ci-dessous, le même que la table). -->
-<script id="cf-textes" type="application/json">{"fr":{"page.tourne":"Tourne ton téléphone pour jouer","page.tourne.attente":"la nuit t'attend","page.eveil":"La Sylve s'éveille…","page.lent":"Ton navigateur dessine sans accélération graphique : le jeu risque d'être lent. Tu peux l'activer dans ses réglages (« accélération matérielle »).","page.lent.ok":"Compris","page.cadre":"Ce jeu ne se joue pas encastré dans un autre site.","page.cadre.lien":"Ouvrir la version officielle","page.droits":"© 2026 danmtya-coder — tous droits réservés","page.copie":"Copie non autorisée : ce jeu est une œuvre protégée.","page.copie.lien":"Joue à la version officielle","page.copie.code":"Tu joues déjà sur la version officielle ? Ce code nous aide à comprendre :","page.copier_code":"Copier le code","page.fige.titre":"La Sylve s'est figée","page.fige.msg":"Ce n'est pas ta faute. Recharge la page : ton Carnet et tes réglages sont gardés.","page.fige.code":"Si ça recommence, ce code aide à trouver la cause :","page.fige.recharger":"Recharger","page.fige.w":"Ce navigateur ne sait pas faire tourner le jeu (WebAssembly). Essaie un navigateur récent.","page.fige.l.titre":"La Sylve s'est assoupie","page.fige.l.msg":"Le téléphone a repris la mémoire graphique. Touche pour la réveiller : ton Carnet et tes réglages sont gardés.","page.fige.l.bouton":"Réveiller","page.fige.g":"Le jeu a besoin de l'accélération graphique (WebGL). Active-la dans les réglages du navigateur, ou essaie un autre navigateur.","page.fige.n":"Le jeu n'a pas pu arriver jusqu'ici. Vérifie ta connexion, puis recharge : ton Carnet et tes réglages sont gardés.","page.manifeste.description":"Une petite lueur, une nuit qui n'en finit pas, et une meute de braises qui grandit. Bâtis, fortifie, tiens jusqu'à l'aube."},"en":{"page.tourne":"Turn your phone to play","page.tourne.attente":"the night is waiting for you","page.eveil":"The Sylve is waking up…","page.lent":"Your browser draws without graphics acceleration: the game may be slow. You can turn it on in its settings (“hardware acceleration”).","page.lent.ok":"Got it","page.cadre":"This game can't be played inside another website.","page.cadre.lien":"Open the official version","page.droits":"© 2026 danmtya-coder — all rights reserved","page.copie":"Unauthorized copy: this game is a protected work.","page.copie.lien":"Play the official version","page.copie.code":"Already playing the official version? This code helps us understand:","page.copier_code":"Copy the code","page.fige.titre":"The Sylve has frozen","page.fige.msg":"It's not your fault. Reload the page: your Field Notes and settings are kept.","page.fige.code":"If it happens again, this code helps find the cause:","page.fige.recharger":"Reload","page.fige.w":"This browser can't run the game (WebAssembly). Try a recent browser.","page.fige.l.titre":"The Sylve has dozed off","page.fige.l.msg":"The phone took back the graphics memory. Tap to wake it up: your Field Notes and settings are kept.","page.fige.l.bouton":"Wake up","page.fige.g":"The game needs graphics acceleration (WebGL). Turn it on in the browser settings, or try another browser.","page.fige.n":"The game could not get here. Check your connection, then reload: your Field Notes and settings are kept.","page.manifeste.description":"A small Glimmer, a night that never ends, and a pack of Embers that keeps growing. Build, fortify, hold till dawn."}}</script>
+<script id="cf-textes" type="application/json">{"fr":{"page.tourne":"Tourne ton téléphone pour jouer","page.tourne.attente":"la nuit t'attend","page.eveil":"La Sylve s'éveille…","page.lent":"Ton navigateur dessine sans accélération graphique : le jeu risque d'être lent. Tu peux l'activer dans ses réglages (« accélération matérielle »).","page.lent.ok":"Compris","page.cadre":"Ce jeu ne se joue pas encastré dans un autre site.","page.cadre.lien":"Ouvrir la version officielle","page.droits":"© 2026 danmtya-coder — tous droits réservés","page.copie":"Copie non autorisée : ce jeu est une œuvre protégée.","page.copie.lien":"Joue à la version officielle","page.copie.code":"Tu joues déjà sur la version officielle ? Ce code nous aide à comprendre :","page.copier_code":"Copier le code","page.fige.titre":"La Sylve s'est figée","page.fige.msg":"Ce n'est pas ta faute. Recharge la page : ton Carnet et tes réglages sont gardés.","page.fige.code":"Si ça recommence, ce code aide à trouver la cause :","page.fige.recharger":"Recharger","page.fige.w":"Ce navigateur ne sait pas faire tourner le jeu (WebAssembly). Essaie un navigateur récent.","page.fige.l.titre":"La Sylve s'est assoupie","page.fige.l.msg":"Le téléphone a repris la mémoire graphique. Touche pour la réveiller : ton Carnet et tes réglages sont gardés.","page.fige.l.bouton":"Réveiller","page.fige.g":"Le jeu a besoin de l'accélération graphique (WebGL). Active-la dans les réglages du navigateur, ou essaie un autre navigateur.","page.fige.n":"Le jeu n'a pas pu arriver jusqu'ici. Vérifie ta connexion, puis recharge : ton Carnet et tes réglages sont gardés.","page.manifeste.description":"Une petite lueur, une nuit qui n'en finit pas, et une meute de braises qui grandit. Bâtis, fortifie, tiens jusqu'à l'aube.","page.apercu.titre":"Tiens jusqu'à l'aube","page.apercu.description":"Une petite lumière bâtit un labyrinthe pour tenir jusqu'à l'aube. Dans ton navigateur, sans compte."},"en":{"page.tourne":"Turn your phone to play","page.tourne.attente":"the night is waiting for you","page.eveil":"The Sylve is waking up…","page.lent":"Your browser draws without graphics acceleration: the game may be slow. You can turn it on in its settings (“hardware acceleration”).","page.lent.ok":"Got it","page.cadre":"This game can't be played inside another website.","page.cadre.lien":"Open the official version","page.droits":"© 2026 danmtya-coder — all rights reserved","page.copie":"Unauthorized copy: this game is a protected work.","page.copie.lien":"Play the official version","page.copie.code":"Already playing the official version? This code helps us understand:","page.copier_code":"Copy the code","page.fige.titre":"The Sylve has frozen","page.fige.msg":"It's not your fault. Reload the page: your Field Notes and settings are kept.","page.fige.code":"If it happens again, this code helps find the cause:","page.fige.recharger":"Reload","page.fige.w":"This browser can't run the game (WebAssembly). Try a recent browser.","page.fige.l.titre":"The Sylve has dozed off","page.fige.l.msg":"The phone took back the graphics memory. Tap to wake it up: your Field Notes and settings are kept.","page.fige.l.bouton":"Wake up","page.fige.g":"The game needs graphics acceleration (WebGL). Turn it on in the browser settings, or try another browser.","page.fige.n":"The game could not get here. Check your connection, then reload: your Field Notes and settings are kept.","page.manifeste.description":"A small Glimmer, a night that never ends, and a pack of Embers that keeps growing. Build, fortify, hold till dawn.","page.apercu.titre":"Hold till dawn","page.apercu.description":"A small light builds a maze to hold out until dawn. Plays in your browser, no account."}}</script>
 <div id="turn" role="status">
   <svg viewBox="0 0 120 120" aria-hidden="true"><g class="ph"><rect x="38" y="14" width="44" height="92" rx="9" fill="none" stroke="#8ff3ff" stroke-width="5"/><circle cx="60" cy="94" r="4" fill="#8ff3ff"/></g><path d="M96 70a38 38 0 0 1-20 30" fill="none" stroke="#ffb35a" stroke-width="5" stroke-linecap="round"/><path d="M70 96l7 5 1-9" fill="none" stroke="#ffb35a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
   <div><span data-t="page.tourne">Tourne ton téléphone pour jouer</span><br><small style="opacity:.7;font-weight:400" data-t="page.tourne.attente">la nuit t'attend</small></div>
@@ -196,6 +211,10 @@
   // l'image resterait figée. Le geste recharge la page (le profil est intact).
   var gl = document.getElementById("glcanvas");
   if (gl) gl.addEventListener("webglcontextlost", function (e) { e.preventDefault(); window.cfFige("L", "contexte"); }, false);
+  // QUAL-05 (point 3) : un bouton de la souris pressé sur la toile y est relâché, même si un voile de la page s'ouvre
+  // entre-temps (« Reprendre un Carnet ») ou si le pointeur sort de la toile : sans cela, le jeu ne voyait jamais le
+  // relâché, croyait le bouton toujours tenu, et le premier clic suivant ne faisait rien.
+  if (gl) gl.addEventListener("pointerdown", function (e) { if (e.pointerType === "mouse") { try { gl.setPointerCapture(e.pointerId); } catch (x) {} } }, false);
   // le chargeur prévient par alert() (WebGL incomplet, WebAssembly refusé) : on montre l'écran à la place
   window.alert = function (m) { window.cfFige("A", m); };
   if (typeof WebAssembly !== "object") { window.cfFige("W", ""); return; }
@@ -257,7 +276,7 @@
   } catch (e) {}
 })();
 </script>
-<script src="mq_js_bundle.js?v=57082514dba0"></script>
+<script src="mq_js_bundle.js?v=8340fe4ebce6"></script>
 <script>
 /* SYLVELIGHT © 2026 danmtya-coder — tous droits réservés. ADR-012 : le jeu lit ici l'adresse qui le sert (0 = verrouillé). */
 miniquad_add_plugin({ name: "cf_host", version: 1, register_plugin: function (o) {
@@ -383,6 +402,64 @@ miniquad_add_plugin({ name: "cf_link", version: 1, register_plugin: function (o)
   o.env.cf_base_len = function () { return base.length; };
   o.env.cf_base_at = function (i) { return base.charCodeAt(i) | 0; };
 } });
+// PART-01 (ADR-051) : l'image de la nuit. Le jeu remet un PNG (pointeur et longueur dans sa mémoire) et son nom ; la
+// page en fait un fichier : la feuille de partage au téléphone quand le navigateur sait partager un fichier, sinon un
+// téléchargement. Rien ne part sur le réseau : partager ou enregistrer reste un geste du joueur. window.__cf_image : la
+// dernière image (nom, octets), lue par la fumée ; window.__cf_image_garder : la fumée la garde sans la remettre.
+// La feuille de partage d'un fichier exige un geste frais du joueur : le jeu demande l'image au relâché ; si le
+// navigateur refuse quand même (NotAllowedError), l'image attend le toucher suivant, pris ici (sur le modèle de
+// `persister`), et le jeu dit « Touche ici ». L'issue remonte au jeu (cf_image_issue) : 0 rien, 1 en cours, 2 remise,
+// 3 attend un geste, 4 rien n'est sorti ; 2 et 4 ne se lisent qu'une fois.
+miniquad_add_plugin({ name: "cf_image", version: 1, register_plugin: function (o) {
+  var issue = 0, attente = null, GESTES = ["touchend", "pointerup", "keydown"];
+  function desarmer() { attente = null; GESTES.forEach(function (g) { try { document.removeEventListener(g, auGeste, true); } catch (e) {} }); }
+  function telecharger(blob, nom) {
+    try {
+      var u = URL.createObjectURL(blob), a = document.createElement("a");
+      a.href = u; a.download = nom; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(u); }, 60000);
+      issue = 2;
+    } catch (e) { issue = 4; }
+  }
+  function partager(im, premier) {
+    issue = 1;
+    try {
+      navigator.share({ files: [im.f] }).then(function () { issue = 2; }, function (e) {
+        var n = e && e.name;
+        if (n === "AbortError") { issue = 4; return; }
+        if (premier && n === "NotAllowedError") {
+          attente = im; issue = 3;
+          GESTES.forEach(function (g) { try { document.addEventListener(g, auGeste, true); } catch (x) {} });
+          return;
+        }
+        telecharger(im.blob, im.nom);
+      });
+    } catch (e) { telecharger(im.blob, im.nom); }
+  }
+  function auGeste() { var im = attente; desarmer(); if (im) partager(im, false); }
+  o.env.cf_image_issue = function () { var k = issue; if (k === 2 || k === 4) issue = 0; return k; };
+  o.env.cf_image_oublier = function () { desarmer(); if (issue === 3) issue = 0; };
+  o.env.cf_image = function (p, n, q, m) {
+    var octets, nom = "sylvelight.png";
+    desarmer();
+    try {
+      octets = new Uint8Array(wasm_memory.buffer, p, n).slice();
+      nom = new TextDecoder().decode(new Uint8Array(wasm_memory.buffer, q, m)) || nom;
+    } catch (e) { issue = 4; return; }
+    window.__cf_image = { nom: nom, octets: octets };
+    if (window.__cf_image_garder) { issue = 2; return; }
+    var blob = new Blob([octets], { type: "image/png" });
+    try {
+      var phone = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+      var f = typeof File === "function" ? new File([blob], nom, { type: "image/png" }) : null;
+      if (phone && f && navigator.share && navigator.canShare && navigator.canShare({ files: [f] })) {
+        partager({ f: f, blob: blob, nom: nom }, true);
+        return;
+      }
+    } catch (e) {}
+    telecharger(blob, nom);
+  };
+} });
 // I18N-01 : la langue — le jeu lit celle du navigateur (au premier lancement), puis dit à la page celle qu'il parle
 // (1 français, 2 anglais) : ses voiles et son manifeste la suivent
 miniquad_add_plugin({ name: "cf_lang", version: 1, register_plugin: function (o) {
@@ -459,7 +536,7 @@ miniquad_add_plugin({ name: "cf_view", version: 1, register_plugin: function (o)
   o.env.cf_ouvrages = function (r, t, e) { window.__cf_ouvrages = { ruches: r, tourelles: t, etouffees: e }; };
   o.env.cf_ui_clore = function (e) { if (ui) { ui.ecran = ["", "titre", "nuit", "voile", "fin", "touches"][e] || ""; window.__cf_ui = ui; } };
 } });
-load("cinderfall.wasm?v=57082514dba0");
+load("cinderfall.wasm?v=8340fe4ebce6");
 // WEB-01 (ADR-036) : hors ligne et installable — le service worker garde le jeu après une première visite (sw.js).
 // Seulement en http(s) ; un refus du navigateur ne gêne pas la partie.
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) window.addEventListener("load", function () {
